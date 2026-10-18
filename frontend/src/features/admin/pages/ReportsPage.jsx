@@ -173,7 +173,7 @@ function TrendChart({ days }) {
       <div className="h-72" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
           {/* Hidden from assistive tech (the table below has the same numbers), so no keyboard stop either. */}
-          <LineChart data={rows} accessibilityLayer={false} margin={{ top: 8, right: 72, left: -20, bottom: 0 }}>
+          <LineChart data={rows} accessibilityLayer={false} margin={{ top: 8, right: 72, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis
               dataKey="label"
