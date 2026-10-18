@@ -29,12 +29,13 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         className="flex items-center gap-2 rounded-full p-1 pr-1 hover:bg-surface-muted sm:pr-3"
-        aria-label={`Account menu for ${user.display_name}`}
       >
-        <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
+        <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
           {initials(user.display_name)}
         </span>
-        <span className="hidden max-w-36 truncate text-sm font-medium text-fg sm:block">{user.display_name}</span>
+        {/* Visible from sm up; always the button's accessible name. */}
+        <span className="sr-only max-w-36 truncate text-sm font-medium text-fg sm:not-sr-only">{user.display_name}</span>
+        <span className="sr-only">, account menu</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuLabel>

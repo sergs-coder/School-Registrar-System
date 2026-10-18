@@ -49,7 +49,7 @@ export function AuthLayout() {
 
       <div className="flex flex-col bg-background">
         <div className="flex items-center justify-between p-4 sm:p-6">
-          <Link to="/login" className="rounded-lg lg:invisible" aria-label="Student Request Portal">
+          <Link to="/login" className="rounded-lg lg:invisible">
             <Logo />
           </Link>
           <ThemeToggle />

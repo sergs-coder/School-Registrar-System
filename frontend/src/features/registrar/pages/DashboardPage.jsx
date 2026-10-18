@@ -115,7 +115,6 @@ function StatusBars({ counts }) {
             <Link
               to={`/registrar/requests?tab=${viewFor(status)}`}
               className="group grid grid-cols-[148px_1fr_32px] items-center gap-3 rounded-lg py-0.5 text-sm"
-              aria-label={`${meta.label}: ${count}`}
             >
               <span className="flex items-center gap-2 truncate text-muted group-hover:text-fg">
                 <Icon className="size-4 shrink-0" aria-hidden="true" data-status={status} style={{ color: 'var(--s)' }} />
@@ -145,7 +144,7 @@ function DailyChart({ days }) {
     <>
       <div className="h-64" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} margin={{ top: 14, right: 4, left: -24, bottom: 0 }} onMouseLeave={() => setActive(null)}>
+          <BarChart data={rows} accessibilityLayer={false} margin={{ top: 14, right: 4, left: -24, bottom: 0 }} onMouseLeave={() => setActive(null)}>
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis
               dataKey="label"

@@ -128,3 +128,11 @@
     transform: translateX(100%);
   }
 }
+
+/* Sonner's light rich-color text is about 4.2:1 on its tinted backgrounds; darken it to pass WCAG AA (4.5:1). */
+[data-sonner-toaster][data-sonner-theme='light'][data-sonner-theme='light'] {
+  --success-text: #166534;
+  --info-text: #075985;
+  --warning-text: #92400e;
+  --error-text: #b91c1c;
+}
