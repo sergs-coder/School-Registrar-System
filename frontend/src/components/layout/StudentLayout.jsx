@@ -42,8 +42,9 @@ export function StudentLayout() {
       <ScrollToTop />
       <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="mr-2 min-w-0 rounded-lg" aria-label="Student Request Portal home">
+          <Link to="/" className="mr-2 min-w-0 rounded-lg">
             <Logo />
+            <span className="sr-only">, home</span>
           </Link>
           <nav aria-label="Main" className="hidden flex-1 items-center gap-1 md:flex">
             {NAV.map((item) => (

@@ -46,16 +46,18 @@ export function NotificationBell() {
     if (n.reference_no) navigate(`/requests/${n.reference_no}`)
   }
 
+  // The label repeats the badge text exactly, so voice-control users can say what they see (WCAG 2.5.3).
+  const badge = unread > 9 ? '9+' : String(unread)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className="relative flex size-10 items-center justify-center rounded-lg text-fg hover:bg-surface-muted"
-        aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
+        aria-label={unread ? `Notifications, ${badge} unread` : 'Notifications'}
       >
         <Bell className="size-5" aria-hidden="true" />
         {unread > 0 && (
           <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white ring-2 ring-surface dark:text-background">
-            {unread > 9 ? '9+' : unread}
+            {badge}
           </span>
         )}
       </DropdownMenuTrigger>

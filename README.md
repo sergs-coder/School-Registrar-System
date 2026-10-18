@@ -99,6 +99,20 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
 - **QR verification:** each slip and e-document has a random 16-character code (`issued_documents`). Anyone can
   check it at `/verify/<code>` without logging in (rate-limited). The page shows only what is printed on the
   document, with the student number masked.
+- **Admin back office** (admins only, under `/registrar/admin`):
+  - **Document types:** add, edit or hide types, with their fees, extra questions and required files. Submitted
+    requests keep the terms in their snapshot; drafts follow the catalog.
+  - **Settings:** office details, courier fees, payment instructions, closed days (which push back estimated
+    release dates) and announcements on the student home page.
+  - **Users:** add staff and admins, who set their own password through an emailed 72-hour link (shown on screen
+    in development). Admins can also deactivate (which signs the person out everywhere), unlock or resend a
+    password link. Admins can't lock themselves out or remove the last active admin.
+  - **Reports:** volume, turnaround, on-time rate and fees for a date range, plus request and payment CSV exports.
+    Exports are logged and protected against spreadsheet formula injection.
+  - **Audit log:** filter by action, person, record and date; export to CSV (also logged).
+- **Performance and accessibility:** pages load on demand, so students never download the back office or its
+  charts. Pages pass axe-core WCAG 2.1 AA checks, and chart colors are validated for color-blind readers in
+  light and dark mode.
 - **Concurrency:** staff actions send the request version they saw; if a colleague changed it first, the
   API answers `409 STALE_REQUEST` instead of silently overwriting.
 - **Errors:** every API error uses `{"error": {"code", "message", "details": [{field, message}]}}`.
@@ -111,5 +125,5 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
       status updates with remarks, internal staff notes, assignment, attachment review, in-app and email
       notifications
 - [x] **Phase 3:** payments and proof upload, pick-up slips (PDF), watermarked e-documents, QR verification
-- [ ] **Phase 4:** admin settings (document types, fees, holidays, users, announcements), reports and
+- [x] **Phase 4:** admin settings (document types, fees, holidays, users, announcements), reports and
       exports, audit log viewer, accessibility and performance polish

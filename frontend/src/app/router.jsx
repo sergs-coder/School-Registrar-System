@@ -3,70 +3,105 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { RegistrarLayout } from '@/components/layout/RegistrarLayout'
 import { StudentLayout } from '@/components/layout/StudentLayout'
-import { RedirectIfAuthed, RequireAuth } from '@/features/auth/components/RequireAuth'
-import { ConsentPage } from '@/features/auth/pages/ConsentPage'
-import { LoginPage } from '@/features/auth/pages/LoginPage'
-import { ForgotPasswordPage, ResetPasswordPage } from '@/features/auth/pages/PasswordPages'
-import { CatalogPage } from '@/features/catalog/pages/CatalogPage'
-import { HomePage } from '@/features/home/pages/HomePage'
-import { ProfilePage } from '@/features/profile/pages/ProfilePage'
-import { NotificationsPage } from '@/features/notifications/NotificationsPage'
-import { DashboardPage } from '@/features/registrar/pages/DashboardPage'
-import { QueuePage } from '@/features/registrar/pages/QueuePage'
-import { MyRequestsPage } from '@/features/requests/pages/MyRequestsPage'
-import { RequestDetailPage } from '@/features/requests/pages/RequestDetailPage'
-import { EditRequestPage, NewRequestPage } from '@/features/requests/pages/RequestWizardPage'
-import { VerifyPage } from '@/features/verify/VerifyPage'
-import { NotFoundPage, PrivacyPage } from '@/pages/PublicPages'
+import { FullPageLoader, RedirectIfAuthed, RequireAuth } from '@/features/auth/components/RequireAuth'
+
+/**
+ * Pages load on demand, so students never download the back office (and its charts), and only
+ * admins load the admin pages. Only layouts and route guards are in the main bundle; even the sign-in
+ * page (and its form libraries) loads separately, since signed-in users skip it.
+ */
+const page = (load, name) => async () => ({ Component: (await load())[name] })
+
+const pages = {
+  login: page(() => import('@/features/auth/pages/LoginPage'), 'LoginPage'),
+  consent: page(() => import('@/features/auth/pages/ConsentPage'), 'ConsentPage'),
+  forgot: page(() => import('@/features/auth/pages/PasswordPages'), 'ForgotPasswordPage'),
+  reset: page(() => import('@/features/auth/pages/PasswordPages'), 'ResetPasswordPage'),
+  privacy: page(() => import('@/pages/PublicPages'), 'PrivacyPage'),
+  notFound: page(() => import('@/pages/PublicPages'), 'NotFoundPage'),
+  verify: page(() => import('@/features/verify/VerifyPage'), 'VerifyPage'),
+  home: page(() => import('@/features/home/pages/HomePage'), 'HomePage'),
+  myRequests: page(() => import('@/features/requests/pages/MyRequestsPage'), 'MyRequestsPage'),
+  catalog: page(() => import('@/features/catalog/pages/CatalogPage'), 'CatalogPage'),
+  newRequest: page(() => import('@/features/requests/pages/RequestWizardPage'), 'NewRequestPage'),
+  editRequest: page(() => import('@/features/requests/pages/RequestWizardPage'), 'EditRequestPage'),
+  requestDetail: page(() => import('@/features/requests/pages/RequestDetailPage'), 'RequestDetailPage'),
+  notifications: page(() => import('@/features/notifications/NotificationsPage'), 'NotificationsPage'),
+  profile: page(() => import('@/features/profile/pages/ProfilePage'), 'ProfilePage'),
+  dashboard: page(() => import('@/features/registrar/pages/DashboardPage'), 'DashboardPage'),
+  queue: page(() => import('@/features/registrar/pages/QueuePage'), 'QueuePage'),
+  documentTypes: page(() => import('@/features/admin/pages/DocumentTypesPage'), 'DocumentTypesPage'),
+  users: page(() => import('@/features/admin/pages/UsersPage'), 'UsersPage'),
+  reports: page(() => import('@/features/admin/pages/ReportsPage'), 'ReportsPage'),
+  auditLog: page(() => import('@/features/admin/pages/AuditLogPage'), 'AuditLogPage'),
+  settings: page(() => import('@/features/admin/pages/SettingsPage'), 'SettingsPage'),
+}
 
 export const router = createBrowserRouter([
   {
-    element: <RedirectIfAuthed />,
+    // Shown while the first page's code loads.
+    HydrateFallback: FullPageLoader,
     children: [
       {
-        element: <AuthLayout />,
+        element: <RedirectIfAuthed />,
         children: [
-          { path: '/login', element: <LoginPage /> },
-          { path: '/forgot-password', element: <ForgotPasswordPage /> },
-          { path: '/reset-password', element: <ResetPasswordPage /> },
+          {
+            element: <AuthLayout />,
+            children: [
+              { path: '/login', lazy: pages.login },
+              { path: '/forgot-password', lazy: pages.forgot },
+              { path: '/reset-password', lazy: pages.reset },
+            ],
+          },
         ],
       },
-    ],
-  },
-  { path: '/consent', element: <ConsentPage /> },
-  { path: '/privacy', element: <PrivacyPage /> },
-  { path: '/verify', element: <VerifyPage /> },
-  { path: '/verify/:code', element: <VerifyPage /> },
-  {
-    element: <RequireAuth roles={['student']} />,
-    children: [
+      { path: '/consent', lazy: pages.consent },
+      { path: '/privacy', lazy: pages.privacy },
+      { path: '/verify', lazy: pages.verify },
+      { path: '/verify/:code', lazy: pages.verify },
       {
-        element: <StudentLayout />,
+        element: <RequireAuth roles={['student']} />,
         children: [
-          { path: '/', element: <HomePage /> },
-          { path: '/requests', element: <MyRequestsPage /> },
-          { path: '/requests/new', element: <CatalogPage /> },
-          { path: '/requests/new/:slug', element: <NewRequestPage /> },
-          { path: '/requests/:ref', element: <RequestDetailPage /> },
-          { path: '/requests/:ref/edit', element: <EditRequestPage /> },
-          { path: '/notifications', element: <NotificationsPage /> },
-          { path: '/profile', element: <ProfilePage /> },
+          {
+            element: <StudentLayout />,
+            children: [
+              { path: '/', lazy: pages.home },
+              { path: '/requests', lazy: pages.myRequests },
+              { path: '/requests/new', lazy: pages.catalog },
+              { path: '/requests/new/:slug', lazy: pages.newRequest },
+              { path: '/requests/:ref', lazy: pages.requestDetail },
+              { path: '/requests/:ref/edit', lazy: pages.editRequest },
+              { path: '/notifications', lazy: pages.notifications },
+              { path: '/profile', lazy: pages.profile },
+            ],
+          },
         ],
       },
-    ],
-  },
-  {
-    element: <RequireAuth roles={['staff', 'admin']} />,
-    children: [
       {
-        path: '/registrar',
-        element: <RegistrarLayout />,
+        element: <RequireAuth roles={['staff', 'admin']} />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'requests', element: <QueuePage /> },
+          {
+            path: '/registrar',
+            element: <RegistrarLayout />,
+            children: [
+              { index: true, lazy: pages.dashboard },
+              { path: 'requests', lazy: pages.queue },
+              {
+                path: 'admin',
+                element: <RequireAuth roles={['admin']} />,
+                children: [
+                  { path: 'document-types', lazy: pages.documentTypes },
+                  { path: 'users', lazy: pages.users },
+                  { path: 'reports', lazy: pages.reports },
+                  { path: 'audit-log', lazy: pages.auditLog },
+                  { path: 'settings', lazy: pages.settings },
+                ],
+              },
+            ],
+          },
         ],
       },
+      { path: '*', lazy: pages.notFound },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
 ])

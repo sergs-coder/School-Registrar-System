@@ -36,11 +36,11 @@ const SECTIONS = [
     title: 'Admin',
     admin: true,
     items: [
-      { label: 'Document types', icon: FileCog, phase: 4 },
-      { label: 'Users', icon: Users, phase: 4 },
-      { label: 'Reports', icon: BarChart3, phase: 4 },
-      { label: 'Audit logs', icon: ScrollText, phase: 4 },
-      { label: 'Settings', icon: Settings, phase: 4 },
+      { to: '/registrar/admin/reports', label: 'Reports', icon: BarChart3 },
+      { to: '/registrar/admin/document-types', label: 'Document types', icon: FileCog },
+      { to: '/registrar/admin/users', label: 'Users', icon: Users },
+      { to: '/registrar/admin/settings', label: 'Settings', icon: Settings },
+      { to: '/registrar/admin/audit-log', label: 'Audit log', icon: ScrollText },
     ],
   },
 ]
@@ -61,32 +61,23 @@ function SidebarNav() {
         <div key={section.title}>
           <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-subtle">{section.title}</p>
           <ul className="space-y-0.5">
-            {section.items.map(({ to, tab, label, icon: Icon, end, phase }) => (
+            {section.items.map(({ to, tab, label, icon: Icon, end }) => (
               <li key={label}>
-                {to ? (
-                  <NavLink
-                    to={to}
-                    end={end}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',
-                        isActive && tabMatches(to, tab)
-                          ? 'bg-primary-soft text-link'
-                          : 'text-muted hover:bg-surface-muted hover:text-fg',
-                      )
-                    }
-                    aria-current={tabMatches(to, tab) ? undefined : false}
-                  >
-                    <Icon className="size-4" aria-hidden="true" /> {label}
-                  </NavLink>
-                ) : (
-                  <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-subtle" aria-disabled="true">
-                    <Icon className="size-4" aria-hidden="true" /> {label}
-                    <span className="ml-auto rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold">
-                      Phase {phase}
-                    </span>
-                  </span>
-                )}
+                <NavLink
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',
+                      isActive && tabMatches(to, tab)
+                        ? 'bg-primary-soft text-link'
+                        : 'text-muted hover:bg-surface-muted hover:text-fg',
+                    )
+                  }
+                  aria-current={tabMatches(to, tab) ? undefined : false}
+                >
+                  <Icon className="size-4" aria-hidden="true" /> {label}
+                </NavLink>
               </li>
             ))}
           </ul>

@@ -8,6 +8,16 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
+    build: {
+      rolldownOptions: {
+        output: {
+          // React and the router change rarely: a separate chunk stays cached across app deploys.
+          codeSplitting: {
+            groups: [{ name: 'react-vendor', test: /node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/ }],
+          },
+        },
+      },
+    },
     server: {
       host: true,
       port: 5173,

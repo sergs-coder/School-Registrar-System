@@ -79,6 +79,10 @@
   --status-cancelled: #94a3b8;        --status-cancelled-fg: #475569;
   --status-bg-mix: 14%;
 
+  /* Report chart series (validated for color-blind separation on --surface; dark steps below). */
+  --series-1: #3157c2;
+  --series-2: #eb6834;
+
   color-scheme: light;
 }
 
@@ -125,6 +129,9 @@
   --status-rejected-fg: #fca5a5;
   --status-cancelled-fg: #cbd5e1;
   --status-bg-mix: 20%;
+
+  --series-1: #5579d6;
+  --series-2: #d95926;
 
   color-scheme: dark;
 }

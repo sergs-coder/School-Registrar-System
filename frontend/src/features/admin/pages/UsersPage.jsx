@@ -1,0 +1,329 @@
+import { KeyRound, Lock, MoreHorizontal, Pencil, Power, Search, ShieldCheck, Unlock, UserPlus, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+
+import { FormField } from '@/components/shared/FormField'
+import { EmptyState, ErrorState, PageHeader } from '@/components/shared/misc'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input, Select } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog, Pager, SetupLinkNotice } from '@/features/admin/components'
+import { useCreateStaff, useSendPasswordLink, useUnlockUser, useUpdateUser, useUsers } from '@/features/admin/api'
+import { useAuth } from '@/lib/auth'
+import { apiError, errorMessage } from '@/lib/errors'
+import { cn, formatDateTime, timeAgo } from '@/lib/utils'
+
+const ROLE = {
+  admin: { label: 'Admin', className: 'bg-accent-soft text-accent-800 dark:text-accent-200' },
+  staff: { label: 'Staff', className: 'bg-primary-soft text-link' },
+  student: { label: 'Student', className: 'bg-surface-muted text-muted' },
+}
+
+export function UsersPage() {
+  const { user: me } = useAuth()
+  const [search, setSearch] = useState('')
+  const [q, setQ] = useState('')
+  const [role, setRole] = useState('')
+  const [state, setState] = useState('')
+  const [page, setPage] = useState(1)
+  const [dialog, setDialog] = useState(null) // { type: 'create' | 'edit' | 'deactivate', user? }
+  const [link, setLink] = useState(null)
+  const pageSize = 20
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setQ(search.trim())
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(id)
+  }, [search])
+
+  const { data, isLoading, error, refetch } = useUsers({ q: q || undefined, role: role || undefined, state: state || undefined, page, page_size: pageSize })
+  const unlock = useUnlockUser()
+  const sendLink = useSendPasswordLink()
+  const update = useUpdateUser()
+
+  async function run(promise, success) {
+    try {
+      const out = await promise
+      toast.success(success)
+      if (out?.setup_link) setLink(out.setup_link)
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Users"
+        description="Staff and admin accounts, plus student sign-in status. Student names and numbers come from the Registrar’s records."
+        actions={
+          <Button onClick={() => setDialog({ type: 'create' })}>
+            <UserPlus /> Add staff
+          </Button>
+        }
+      />
+
+      <SetupLinkNotice link={link} />
+
+      <div className="flex flex-wrap gap-2">
+        <div className="relative min-w-60 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
+          <Input
+            type="search"
+            aria-label="Search users"
+            placeholder="Name, email, student or employee no."
+            className="h-10 pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select aria-label="Role" className="h-10 w-36" value={role} onChange={(e) => { setRole(e.target.value); setPage(1) }}>
+          <option value="">All roles</option>
+          <option value="admin">Admins</option>
+          <option value="staff">Staff</option>
+          <option value="student">Students</option>
+        </Select>
+        <Select aria-label="Status" className="h-10 w-36" value={state} onChange={(e) => { setState(e.target.value); setPage(1) }}>
+          <option value="">Any status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Deactivated</option>
+          <option value="locked">Locked out</option>
+        </Select>
+      </div>
+
+      {error ? (
+        <ErrorState error={error} onRetry={refetch} />
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <caption className="sr-only">Users</caption>
+              <thead className="border-b border-border bg-surface-muted/60 text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                <tr>
+                  <th scope="col" className="px-4 py-3">Name</th>
+                  <th scope="col" className="px-3 py-3">Role</th>
+                  <th scope="col" className="px-3 py-3">ID</th>
+                  <th scope="col" className="px-3 py-3">Status</th>
+                  <th scope="col" className="px-3 py-3">Last sign-in</th>
+                  <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {isLoading
+                  ? Array.from({ length: 8 }, (_, i) => (
+                      <tr key={i}>
+                        <td colSpan={6} className="px-4 py-3">
+                          <Skeleton className="h-9" />
+                        </td>
+                      </tr>
+                    ))
+                  : data.items.map((u) => (
+                      <tr key={u.id} className={cn(!u.is_active && 'text-muted')}>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-fg">
+                            {u.display_name}
+                            {u.id === me.id && <span className="ml-1.5 text-xs font-normal text-muted">(you)</span>}
+                          </p>
+                          <p className="text-xs text-muted">{u.email}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', ROLE[u.role].className)}>
+                            {ROLE[u.role].label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <p className="font-mono text-xs text-fg">{u.student_no ?? u.employee_no ?? '—'}</p>
+                          <p className="text-xs text-muted">{u.program ?? u.position ?? ''}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          {!u.is_active ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted">
+                              <Power className="size-3.5" aria-hidden="true" /> Deactivated
+                            </span>
+                          ) : u.is_locked ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-danger">
+                              <Lock className="size-3.5" aria-hidden="true" /> Locked out
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                              <ShieldCheck className="size-3.5" aria-hidden="true" /> Active
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-xs text-muted" title={u.last_login_at ? formatDateTime(u.last_login_at) : undefined}>
+                          {u.last_login_at ? timeAgo(u.last_login_at) : 'Never'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${u.display_name}`}>
+                                <MoreHorizontal />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              {u.role !== 'student' && (
+                                <DropdownMenuItem onSelect={() => setDialog({ type: 'edit', user: u })}>
+                                  <Pencil /> Edit
+                                </DropdownMenuItem>
+                              )}
+                              {u.is_locked && (
+                                <DropdownMenuItem onSelect={() => run(unlock.mutateAsync(u.id), `${u.display_name} can sign in again`)}>
+                                  <Unlock /> Unlock sign-in
+                                </DropdownMenuItem>
+                              )}
+                              {u.is_active && (
+                                <DropdownMenuItem onSelect={() => run(sendLink.mutateAsync(u.id), `Password link sent to ${u.email}`)}>
+                                  <KeyRound /> Send password link
+                                </DropdownMenuItem>
+                              )}
+                              {u.id !== me.id && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  {u.is_active ? (
+                                    <DropdownMenuItem className="text-danger [&_svg]:text-danger" onSelect={() => setDialog({ type: 'deactivate', user: u })}>
+                                      <Power /> Deactivate
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onSelect={() => run(update.mutateAsync({ id: u.id, body: { is_active: true } }), `${u.display_name} reactivated`)}>
+                                      <Power /> Reactivate
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+          </div>
+          {!isLoading && data.items.length === 0 && (
+            <EmptyState icon={Users} className="m-4 border-none" title="No users match" description="Try a different search or filter." />
+          )}
+          {data && <Pager page={page} pageSize={pageSize} total={data.total} onPage={setPage} />}
+        </Card>
+      )}
+
+      <StaffDialog
+        open={dialog?.type === 'create' || dialog?.type === 'edit'}
+        user={dialog?.type === 'edit' ? dialog.user : null}
+        isSelf={dialog?.user?.id === me.id}
+        onClose={() => setDialog(null)}
+        onCreated={(out) => setLink(out.setup_link)}
+      />
+      <ConfirmDialog
+        open={dialog?.type === 'deactivate'}
+        title={`Deactivate ${dialog?.user?.display_name ?? ''}?`}
+        description="They’re signed out everywhere and can’t sign in until reactivated. Their requests and history stay as they are."
+        confirmLabel="Deactivate"
+        danger
+        pending={update.isPending}
+        onCancel={() => setDialog(null)}
+        onConfirm={async () => {
+          await run(update.mutateAsync({ id: dialog.user.id, body: { is_active: false } }), `${dialog.user.display_name} deactivated`)
+          setDialog(null)
+        }}
+      />
+    </div>
+  )
+}
+
+function StaffDialog({ open, user, isSelf, onClose, onCreated }) {
+  const create = useCreateStaff()
+  const update = useUpdateUser()
+  const [form, setForm] = useState({})
+  const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    if (!open) return
+    setErrors({})
+    setForm(
+      user
+        ? { first_name: user.first_name ?? '', last_name: user.last_name ?? '', position: user.position ?? '', role: user.role }
+        : { email: '', first_name: '', last_name: '', employee_no: '', position: '', role: 'staff' },
+    )
+  }, [open, user])
+
+  const set = (patch) => setForm((f) => ({ ...f, ...patch }))
+  const pending = create.isPending || update.isPending
+
+  async function onSubmit(e) {
+    e.preventDefault()
+    try {
+      if (user) {
+        await update.mutateAsync({ id: user.id, body: isSelf ? { ...form, role: undefined } : form })
+        toast.success('Changes saved')
+      } else {
+        const out = await create.mutateAsync({ ...form, position: form.position || null })
+        toast.success(`Account created. A link to set a password was emailed to ${out.user.email}.`)
+        onCreated(out)
+      }
+      onClose()
+    } catch (err) {
+      const { details = [], message } = apiError(err)
+      const byField = Object.fromEntries(details.filter((d) => d.field).map((d) => [d.field, d.message]))
+      setErrors(byField)
+      if (!Object.keys(byField).length) toast.error(message)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogTitle>{user ? `Edit ${user.display_name}` : 'Add a staff member'}</DialogTitle>
+        <DialogDescription>
+          {user ? user.email : 'They’ll get an email with a link to set their password (valid for 72 hours).'}
+        </DialogDescription>
+        <form id="staff-form" onSubmit={onSubmit} noValidate className="mt-5 space-y-4">
+          {!user && (
+            <FormField label="University email" required error={errors.email}>
+              <Input type="email" autoComplete="off" value={form.email ?? ''} onChange={(e) => set({ email: e.target.value })} />
+            </FormField>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="First name" required error={errors.first_name}>
+              <Input value={form.first_name ?? ''} maxLength={100} onChange={(e) => set({ first_name: e.target.value })} />
+            </FormField>
+            <FormField label="Last name" required error={errors.last_name}>
+              <Input value={form.last_name ?? ''} maxLength={100} onChange={(e) => set({ last_name: e.target.value })} />
+            </FormField>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {!user && (
+              <FormField label="Employee no." required error={errors.employee_no}>
+                <Input value={form.employee_no ?? ''} maxLength={20} className="font-mono" onChange={(e) => set({ employee_no: e.target.value })} />
+              </FormField>
+            )}
+            <FormField label="Position" error={errors.position}>
+              <Input value={form.position ?? ''} maxLength={100} onChange={(e) => set({ position: e.target.value })} />
+            </FormField>
+          </div>
+          <FormField
+            label="Access"
+            required
+            help={isSelf ? 'You can’t change your own access.' : 'Admins can also manage settings, users, reports and audit logs.'}
+          >
+            <Select value={form.role ?? 'staff'} disabled={isSelf} onChange={(e) => set({ role: e.target.value })}>
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </Select>
+          </FormField>
+        </form>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="staff-form" loading={pending}>
+            {user ? 'Save changes' : 'Create account'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
