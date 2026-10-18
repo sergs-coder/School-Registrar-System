@@ -1,4 +1,5 @@
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request as HttpRequest
 from sqlalchemy import Select, func, or_, select
@@ -33,6 +34,7 @@ from app.schemas.staff import (
     DayCount,
     NoteIn,
     PaymentRejectIn,
+    PeriodCount,
     QueueItem,
     StaffBrief,
     StaffRequestDetail,
@@ -251,6 +253,55 @@ def queue(
     total = db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery()))
     rows = db.execute(stmt.order_by(*order).offset((page - 1) * page_size).limit(page_size)).scalars().all()
     return Page(items=[_item(r) for r in rows], total=total, page=page, page_size=page_size)
+
+
+# ---------- submissions trend ----------
+
+# How many periods each chart granularity shows, ending with the current one.
+TREND_PERIODS = {"day": 14, "week": 12, "month": 12, "year": 5}
+
+
+def _period_start(d: date, granularity: str) -> date:
+    if granularity == "week":
+        return d - timedelta(days=d.weekday())  # weeks start on Monday
+    if granularity == "month":
+        return d.replace(day=1)
+    if granularity == "year":
+        return d.replace(month=1, day=1)
+    return d
+
+
+def _step_back(d: date, granularity: str) -> date:
+    """Start of the period just before the one starting on `d`."""
+    if granularity == "week":
+        return d - timedelta(weeks=1)
+    if granularity == "month":
+        return (d - timedelta(days=1)).replace(day=1)
+    if granularity == "year":
+        return d.replace(year=d.year - 1)
+    return d - timedelta(days=1)
+
+
+@router.get("/submissions", response_model=list[PeriodCount])
+def submission_trend(
+    granularity: Literal["day", "week", "month", "year"] = "day",
+    _: User = Depends(require_staff),
+    db: Session = Depends(get_db),
+):
+    """Requests submitted per day, week, month or year (Manila time), oldest first, empty periods included."""
+    starts = [_period_start(_today(), granularity)]
+    for _i in range(TREND_PERIODS[granularity] - 1):
+        starts.append(_step_back(starts[-1], granularity))
+    starts.reverse()
+    counts = dict.fromkeys(starts, 0)
+    submitted = db.execute(
+        select(Request.submitted_at).where(Request.submitted_at >= _manila_start(starts[0]))
+    ).scalars()
+    for ts in submitted:
+        key = _period_start(manila_date(ts), granularity)
+        if key in counts:
+            counts[key] += 1
+    return [PeriodCount(start=d, count=c) for d, c in counts.items()]
 
 
 @router.get("/members", response_model=list[StaffBrief])

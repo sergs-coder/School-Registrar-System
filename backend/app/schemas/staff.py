@@ -102,6 +102,11 @@ class StatusCount(BaseModel):
     count: int
 
 
+class PeriodCount(BaseModel):
+    start: date = Field(description="First day of the period (Manila time)")
+    count: int
+
+
 class DayCount(BaseModel):
     date: date
     count: int

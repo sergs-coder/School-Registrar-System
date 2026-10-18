@@ -4,6 +4,7 @@ import { api } from '@/lib/axios'
 
 export const staffKeys = {
   dashboard: ['staff', 'dashboard'],
+  submissions: (granularity) => ['staff', 'dashboard', 'submissions', granularity],
   queue: (params) => ['staff', 'queue', params],
   detail: (ref) => ['staff', 'request', ref],
   members: ['staff', 'members'],
@@ -13,6 +14,16 @@ export function useDashboard() {
   return useQuery({
     queryKey: staffKeys.dashboard,
     queryFn: async () => (await api.get('/staff/dashboard')).data,
+    refetchInterval: 60_000,
+  })
+}
+
+/** Submissions per day / week / month / year; lives under the dashboard key so it refreshes with it. */
+export function useSubmissionTrend(granularity) {
+  return useQuery({
+    queryKey: staffKeys.submissions(granularity),
+    queryFn: async () => (await api.get('/staff/submissions', { params: { granularity } })).data,
+    placeholderData: keepPreviousData,
     refetchInterval: 60_000,
   })
 }

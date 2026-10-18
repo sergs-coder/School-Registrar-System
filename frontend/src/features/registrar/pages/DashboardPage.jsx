@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ErrorState, PageHeader } from '@/components/shared/misc'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useDashboard } from '@/features/registrar/api'
+import { useDashboard, useSubmissionTrend } from '@/features/registrar/api'
 import { useAuth } from '@/lib/auth'
 import { QUEUE_VIEWS, STATUS, TERMINAL } from '@/lib/status'
 import { cn, formatDate } from '@/lib/utils'
@@ -39,14 +39,18 @@ export function DashboardPage() {
 
       <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {tiles.map(({ label, value, icon: Icon, status, to }) => (
-          <Link key={label} to={to} className="group rounded-2xl focus-visible:outline-offset-4">
-            <Card className="flex h-full flex-col gap-3 p-4 transition-shadow group-hover:shadow-pop">
-              <span data-status={status} className="status-chip flex size-9 items-center justify-center rounded-xl">
+          <Link key={label} to={to} className="group rounded-xl focus-visible:outline-offset-4">
+            <Card className="flex h-full items-center gap-3 rounded-xl px-3.5 py-3 transition-shadow group-hover:shadow-pop">
+              <span data-status={status} className="status-chip flex size-9 shrink-0 items-center justify-center rounded-lg">
                 <Icon className="size-[18px]" aria-hidden="true" />
               </span>
-              <div>
-                {isLoading ? <Skeleton className="h-8 w-10" /> : <p className="text-[28px] font-semibold leading-8 text-fg">{value}</p>}
-                <p className="mt-1 text-[13px] text-muted">{label}</p>
+              <div className="min-w-0">
+                {isLoading ? (
+                  <Skeleton className="h-6 w-8" />
+                ) : (
+                  <p className="text-xl font-semibold leading-6 tabular-nums text-fg">{value}</p>
+                )}
+                <p className="text-xs leading-4 text-muted">{label}</p>
               </div>
             </Card>
           </Link>
@@ -61,13 +65,7 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>{isLoading ? <Skeleton className="h-64" /> : <StatusBars counts={data.counts} />}</CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Submissions, last 14 days</CardTitle>
-            <CardDescription>New requests per day (Manila time).</CardDescription>
-          </CardHeader>
-          <CardContent>{isLoading ? <Skeleton className="h-64" /> : <DailyChart days={data.daily_submissions} />}</CardContent>
-        </Card>
+        <SubmissionsCard />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -136,15 +134,109 @@ function StatusBars({ counts }) {
   )
 }
 
-function DailyChart({ days }) {
+const PERIODS = {
+  day: {
+    label: 'Daily',
+    description: 'Last 14 days',
+    tick: (d) => formatDate(d, { year: undefined }),
+    tip: (d) => formatDate(d, { weekday: 'short' }),
+  },
+  week: {
+    label: 'Weekly',
+    description: 'Last 12 weeks, Monday to Sunday',
+    tick: (d) => formatDate(d, { year: undefined }),
+    tip: (d) => `Week of ${formatDate(d)}`,
+  },
+  month: {
+    label: 'Monthly',
+    description: 'Last 12 months',
+    tick: (d) => formatDate(d, { day: undefined, year: '2-digit' }),
+    tip: (d) => formatDate(d, { month: 'long', day: undefined }),
+  },
+  year: {
+    label: 'Yearly',
+    description: 'Last 5 years',
+    tick: (d) => d.slice(0, 4),
+    tip: (d) => d.slice(0, 4),
+  },
+}
+const PERIOD_KEY = 'srm.dashboard.period'
+
+function readPeriod() {
+  try {
+    const saved = localStorage.getItem(PERIOD_KEY)
+    return saved in PERIODS ? saved : 'day'
+  } catch {
+    return 'day'
+  }
+}
+
+function SubmissionsCard() {
+  const [period, setPeriod] = useState(readPeriod)
+  const { data, error, isFetching, refetch } = useSubmissionTrend(period)
+  const meta = PERIODS[period]
+
+  function choose(next) {
+    setPeriod(next)
+    try {
+      localStorage.setItem(PERIOD_KEY, next)
+    } catch {
+      // private mode: the choice just isn't remembered
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <CardTitle>Submissions</CardTitle>
+          <CardDescription>{meta.description} (Manila time).</CardDescription>
+        </div>
+        <div role="group" aria-label="Group submissions by" className="flex rounded-lg border border-border-strong bg-surface p-0.5">
+          {Object.entries(PERIODS).map(([key, p]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={period === key}
+              onClick={() => choose(key)}
+              className={cn(
+                'h-8 rounded-md px-2.5 text-[13px] font-medium',
+                period === key ? 'bg-primary text-on-primary' : 'text-muted hover:text-fg',
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </CardHeader>
+      <CardContent className={cn('transition-opacity', isFetching && data && 'opacity-70')}>
+        {/* A failed chart shouldn't take the rest of the dashboard down with it. */}
+        {error && !data ? (
+          <ErrorState error={error} onRetry={refetch} />
+        ) : data ? (
+          <SubmissionsChart periods={data} meta={meta} />
+        ) : (
+          <Skeleton className="h-64" />
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function SubmissionsChart({ periods, meta }) {
   const [active, setActive] = useState(null)
-  const rows = days.map((d) => ({ ...d, label: formatDate(d.date, { year: undefined }) }))
+  const rows = periods.map((p) => ({ ...p, label: meta.tick(p.start) }))
   const total = rows.reduce((s, r) => s + r.count, 0)
   return (
     <>
       <div className="h-64" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} accessibilityLayer={false} margin={{ top: 14, right: 4, left: -24, bottom: 0 }} onMouseLeave={() => setActive(null)}>
+          <BarChart
+            data={rows}
+            accessibilityLayer={false}
+            margin={{ top: 14, right: 4, left: 0, bottom: 0 }}
+            onMouseLeave={() => setActive(null)}
+          >
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis
               dataKey="label"
@@ -154,13 +246,13 @@ function DailyChart({ days }) {
               interval="preserveStartEnd"
               minTickGap={16}
             />
-            <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--text-subtle)', fontSize: 11 }} width={40} />
+            <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--text-subtle)', fontSize: 11 }} width={36} />
             <Tooltip
               cursor={{ fill: 'var(--surface-muted)' }}
               content={({ active: isActive, payload }) =>
                 isActive && payload?.length ? (
                   <div className="rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-pop">
-                    <p className="text-muted">{formatDate(payload[0].payload.date, { weekday: 'short' })}</p>
+                    <p className="text-muted">{meta.tip(payload[0].payload.start)}</p>
                     <p className="font-semibold text-fg">
                       {payload[0].value} {payload[0].value === 1 ? 'request' : 'requests'}
                     </p>
@@ -172,7 +264,7 @@ function DailyChart({ days }) {
               dataKey="count"
               fill="var(--primary)"
               radius={[4, 4, 0, 0]}
-              maxBarSize={24}
+              maxBarSize={32}
               onMouseEnter={(_, i) => setActive(i)}
               shape={(props) => (
                 <rect
@@ -190,17 +282,19 @@ function DailyChart({ days }) {
         </ResponsiveContainer>
       </div>
       <table className="sr-only">
-        <caption>Submissions per day, last 14 days ({total} total)</caption>
+        <caption>
+          Submissions, {meta.description.toLowerCase()} ({total} total)
+        </caption>
         <thead>
           <tr>
-            <th scope="col">Date</th>
+            <th scope="col">Period</th>
             <th scope="col">Requests</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.date}>
-              <td>{formatDate(r.date)}</td>
+            <tr key={r.start}>
+              <td>{meta.tip(r.start)}</td>
               <td>{r.count}</td>
             </tr>
           ))}

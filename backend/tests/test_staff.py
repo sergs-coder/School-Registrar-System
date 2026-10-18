@@ -148,3 +148,18 @@ def test_assign_and_attachment_review(client, db, student_headers):
     r = client.patch(f"{API}/staff/attachments/{att}", headers=h, json={"review_status": "accepted"})
     assert r.json()["attachments"][0]["review_status"] == "accepted"
     assert client.post(f"{API}/staff/requests/{ref}/assign", headers=h, json={"staff_id": None}).json()["assigned_to"] is None
+
+
+def test_submission_trend_buckets(client, db, student_headers):
+    submitted_request(client, db, student_headers)
+    submitted_request(client, db, student_headers)
+    _, h = staff_headers(client, db)
+    for granularity, periods in (("day", 14), ("week", 12), ("month", 12), ("year", 5)):
+        rows = client.get(f"{API}/staff/submissions", headers=h, params={"granularity": granularity}).json()
+        assert len(rows) == periods
+        assert [r["start"] for r in rows] == sorted(r["start"] for r in rows)  # oldest first
+        assert rows[-1]["count"] == 2 and sum(r["count"] for r in rows) == 2  # both land in the current period
+    week = client.get(f"{API}/staff/submissions", headers=h, params={"granularity": "week"}).json()
+    from datetime import date
+    assert all(date.fromisoformat(r["start"]).weekday() == 0 for r in week)  # Mondays
+    assert client.get(f"{API}/staff/submissions", headers=h, params={"granularity": "hour"}).status_code == 422
