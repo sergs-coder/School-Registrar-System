@@ -18,6 +18,7 @@ import {
   useStaffRequest,
   useTransition,
 } from '@/features/registrar/api'
+import { EDocumentSection, PaymentSection, PickupSlipButton, Section } from '@/features/registrar/components/ReleaseSections'
 import { TransitionDialog } from '@/features/registrar/components/TransitionDialog'
 import { openAttachment } from '@/features/requests/api'
 import { FeeSummary } from '@/features/requests/components/FeeSummary'
@@ -35,18 +36,6 @@ export function RequestPanel({ reference, onClose }) {
         {reference && <PanelBody reference={reference} />}
       </SheetContent>
     </Sheet>
-  )
-}
-
-function Section({ title, children, action }) {
-  return (
-    <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-fg">{title}</h3>
-        {action}
-      </div>
-      {children}
-    </section>
   )
 }
 
@@ -120,6 +109,7 @@ function PanelBody({ reference }) {
             Submitted {formatDateTime(r.submitted_at)}
             {r.estimated_release_date && ` · Est. release ${formatDate(r.estimated_release_date)}`}
           </span>
+          {r.allowed_actions.includes('pickup_slip') && <PickupSlipButton reference={r.reference_no} />}
         </div>
       </div>
 
@@ -177,6 +167,14 @@ function PanelBody({ reference }) {
         <Section title="Fees">
           <FeeSummary lines={r.fee_breakdown} total={r.fee_total} requiresPayment={Number(r.fee_total) > 0} />
         </Section>
+
+        <PaymentSection
+          request={r}
+          onVerify={() => setAction({ toStatus: 'payment_verified', fromStatus: r.status, requiresRemarks: false })}
+          onStale={refetch}
+        />
+
+        <EDocumentSection request={r} />
 
         <AssignSection request={r} />
 

@@ -69,6 +69,16 @@ export const useUploadAttachment = (ref) =>
     return (await api.post(`/requests/${ref}/attachments`, form)).data
   })
 
+export const useSubmitPayment = (ref) =>
+  useRequestMutation(async ({ method, payerReference, paidOn, file }) => {
+    const form = new FormData()
+    form.append('method', method)
+    form.append('payer_reference', payerReference)
+    form.append('paid_on', paidOn)
+    form.append('file', file)
+    return (await api.post(`/requests/${ref}/payments`, form)).data
+  })
+
 export const useDeleteAttachment = (ref) =>
   useRequestMutation(async (id) => (await api.delete(`/requests/${ref}/attachments/${id}`)).data)
 
@@ -84,16 +94,33 @@ export function useDeleteDraft() {
 }
 
 /** Files need the auth header, so fetch as a blob and open it in a new tab. */
-export async function openAttachment(id) {
+export async function openFile(path) {
   const win = window.open('', '_blank')
   try {
-    const res = await api.get(`/attachments/${id}/download`, { responseType: 'blob' })
+    const res = await api.get(path, { responseType: 'blob' })
     const url = URL.createObjectURL(res.data)
     if (win) win.location.href = url
     else window.location.href = url
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   } catch (err) {
     win?.close()
+    // Error bodies arrive as a Blob too; parse them so errorMessage() shows the API's message.
+    if (err.response?.data instanceof Blob) {
+      try {
+        err.response.data = JSON.parse(await err.response.data.text())
+      } catch {
+        // not JSON; keep the generic message
+      }
+    }
     throw err
   }
+}
+
+export const openAttachment = (id) => openFile(`/attachments/${id}/download`)
+export const openPickupSlip = (ref) => openFile(`/requests/${ref}/pickup-slip`)
+/** E-documents are watermarked and stamped with their QR code on every download. */
+export const openEDocument = (id) => openFile(`/issued/${id}/download`)
+
+export async function verifyCode(code) {
+  return (await api.get(`/verify/${encodeURIComponent(code)}`)).data
 }

@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowRight, CalendarCheck, Inbox, PackageCheck, UserCheck } from 'lucide-react'
+import { AlarmClock, ArrowRight, CalendarCheck, Inbox, PackageCheck, UserCheck, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -22,6 +22,7 @@ export function DashboardPage() {
   const tiles = [
     { label: 'To review', value: count('submitted') + count('resubmitted'), icon: Inbox, status: 'submitted', to: '/registrar/requests?tab=new' },
     { label: 'Overdue', value: data?.overdue_total, icon: AlarmClock, status: 'rejected', to: '/registrar/requests?overdue=1' },
+    { label: 'Payments to verify', value: data?.payments_to_verify, icon: Wallet, status: 'awaiting_payment', to: '/registrar/requests?tab=payment&payment=pending' },
     { label: 'Ready for pick-up', value: count('ready_for_pickup'), icon: PackageCheck, status: 'ready_for_pickup', to: '/registrar/requests?tab=release' },
     { label: 'Assigned to me', value: data?.assigned_to_me, icon: UserCheck, status: 'under_review', to: '/registrar/requests?assigned=me' },
     { label: 'Released this week', value: data?.completed_this_week, icon: CalendarCheck, status: 'completed', to: '/registrar/requests?tab=closed' },
@@ -36,7 +37,7 @@ export function DashboardPage() {
         }
       />
 
-      <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {tiles.map(({ label, value, icon: Icon, status, to }) => (
           <Link key={label} to={to} className="group rounded-2xl focus-visible:outline-offset-4">
             <Card className="flex h-full flex-col gap-3 p-4 transition-shadow group-hover:shadow-pop">
