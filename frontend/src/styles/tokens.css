@@ -1,0 +1,130 @@
+/*
+ * TUA design tokens — the ONE place brand colors live.
+ * Placeholder palette: deep royal blue (primary) + gold (accent).
+ * When the official logo arrives, replace the --brand-* values below; every component follows.
+ */
+
+:root {
+  /* Brand: primary (royal blue) */
+  --brand-primary-50: #eef3fc;
+  --brand-primary-100: #d9e3f8;
+  --brand-primary-200: #b6c8f1;
+  --brand-primary-300: #87a3e6;
+  --brand-primary-400: #5579d6;
+  --brand-primary-500: #3157c2;
+  --brand-primary-600: #2243a3;
+  --brand-primary-700: #1c3785; /* logo blue */
+  --brand-primary-800: #1a2f6b;
+  --brand-primary-900: #172856;
+  --brand-primary-950: #0f1a38;
+
+  /* Brand: accent (gold). Never use as text on white — fills only, with primary-900 text. */
+  --brand-accent-50: #fdf8e7;
+  --brand-accent-100: #faedc0;
+  --brand-accent-200: #f5dd8a;
+  --brand-accent-300: #f0cf63;
+  --brand-accent-400: #e6ba35;
+  --brand-accent-500: #d4a017; /* logo gold */
+  --brand-accent-600: #b08311;
+  --brand-accent-700: #8a6610;
+  --brand-accent-800: #6b4f0e;
+  --brand-accent-900: #4a370b;
+
+  /* Semantic roles (light) */
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #64748b;
+
+  --primary: var(--brand-primary-700);
+  --primary-hover: var(--brand-primary-800);
+  --on-primary: #ffffff;
+  --primary-soft: var(--brand-primary-50);
+  --link: var(--brand-primary-700);
+  --accent: var(--brand-accent-500);
+  --accent-hover: var(--brand-accent-400);
+  --on-accent: var(--brand-primary-900);
+  --accent-soft: var(--brand-accent-50);
+  --ring: var(--brand-primary-500);
+
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --info: #0369a1;
+  --info-soft: #e0f2fe;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
+  --shadow-pop: 0 10px 30px rgb(15 23 42 / 0.12), 0 2px 6px rgb(15 23 42 / 0.06);
+
+  /* Request status colors — used by badges, timeline, stepper and charts. */
+  --status-draft: #64748b;            --status-draft-fg: #334155;
+  --status-submitted: #0284c7;        --status-submitted-fg: #075985;
+  --status-under_review: #3157c2;     --status-under_review-fg: #1c3785;
+  --status-needs_correction: #ea580c; --status-needs_correction-fg: #9a3412;
+  --status-resubmitted: #0ea5e9;      --status-resubmitted-fg: #075985;
+  --status-awaiting_payment: #d4a017; --status-awaiting_payment-fg: #6b4f0e;
+  --status-payment_verified: #0d9488; --status-payment_verified-fg: #115e59;
+  --status-processing: #7c3aed;       --status-processing-fg: #5b21b6;
+  --status-ready_for_pickup: #0891b2; --status-ready_for_pickup-fg: #155e75;
+  --status-shipped: #0891b2;          --status-shipped-fg: #155e75;
+  --status-completed: #16a34a;        --status-completed-fg: #166534;
+  --status-rejected: #dc2626;         --status-rejected-fg: #991b1b;
+  --status-cancelled: #94a3b8;        --status-cancelled-fg: #475569;
+  --status-bg-mix: 14%;
+
+  color-scheme: light;
+}
+
+.dark {
+  --background: #0b1220;
+  --surface: #111a2e;
+  --surface-muted: #17223a;
+  --border: #24314d;
+  --border-strong: #33425f;
+  --text: #e5ebf5;
+  --text-muted: #a5b1c7;
+  --text-subtle: #8492ab;
+
+  --primary: var(--brand-primary-500);
+  --primary-hover: var(--brand-primary-400);
+  --primary-soft: rgb(49 87 194 / 0.18);
+  --link: var(--brand-primary-300);
+  --accent-soft: rgb(212 160 23 / 0.16);
+  --ring: var(--brand-primary-300);
+
+  --success: #4ade80;
+  --success-soft: rgb(22 163 74 / 0.18);
+  --warning: #fbbf24;
+  --warning-soft: rgb(217 119 6 / 0.18);
+  --danger: #f87171;
+  --danger-soft: rgb(220 38 38 / 0.18);
+  --info: #38bdf8;
+  --info-soft: rgb(2 132 199 / 0.18);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45);
+
+  --status-draft-fg: #cbd5e1;
+  --status-submitted-fg: #7dd3fc;
+  --status-under_review-fg: #b6c8f1;
+  --status-needs_correction-fg: #fdba74;
+  --status-resubmitted-fg: #7dd3fc;
+  --status-awaiting_payment-fg: #f5dd8a;
+  --status-payment_verified-fg: #5eead4;
+  --status-processing-fg: #c4b5fd;
+  --status-ready_for_pickup-fg: #67e8f9;
+  --status-shipped-fg: #67e8f9;
+  --status-completed-fg: #86efac;
+  --status-rejected-fg: #fca5a5;
+  --status-cancelled-fg: #cbd5e1;
+  --status-bg-mix: 20%;
+
+  color-scheme: dark;
+}

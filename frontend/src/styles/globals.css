@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Expose tokens as Tailwind utilities: bg-primary-700, text-muted, border-border, etc. */
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-primary-50: var(--brand-primary-50);
+  --color-primary-100: var(--brand-primary-100);
+  --color-primary-200: var(--brand-primary-200);
+  --color-primary-300: var(--brand-primary-300);
+  --color-primary-400: var(--brand-primary-400);
+  --color-primary-500: var(--brand-primary-500);
+  --color-primary-600: var(--brand-primary-600);
+  --color-primary-700: var(--brand-primary-700);
+  --color-primary-800: var(--brand-primary-800);
+  --color-primary-900: var(--brand-primary-900);
+  --color-primary-950: var(--brand-primary-950);
+  --color-accent-50: var(--brand-accent-50);
+  --color-accent-100: var(--brand-accent-100);
+  --color-accent-200: var(--brand-accent-200);
+  --color-accent-300: var(--brand-accent-300);
+  --color-accent-400: var(--brand-accent-400);
+  --color-accent-500: var(--brand-accent-500);
+  --color-accent-600: var(--brand-accent-600);
+  --color-accent-700: var(--brand-accent-700);
+  --color-accent-800: var(--brand-accent-800);
+  --color-accent-900: var(--brand-accent-900);
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-link: var(--link);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-fg font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Status chips/dots read their colors from the data-status attribute. */
+  [data-status] {
+    --s: var(--status-draft);
+    --s-fg: var(--status-draft-fg);
+  }
+  [data-status='submitted'] { --s: var(--status-submitted); --s-fg: var(--status-submitted-fg); }
+  [data-status='under_review'] { --s: var(--status-under_review); --s-fg: var(--status-under_review-fg); }
+  [data-status='needs_correction'] { --s: var(--status-needs_correction); --s-fg: var(--status-needs_correction-fg); }
+  [data-status='resubmitted'] { --s: var(--status-resubmitted); --s-fg: var(--status-resubmitted-fg); }
+  [data-status='awaiting_payment'] { --s: var(--status-awaiting_payment); --s-fg: var(--status-awaiting_payment-fg); }
+  [data-status='payment_verified'] { --s: var(--status-payment_verified); --s-fg: var(--status-payment_verified-fg); }
+  [data-status='processing'] { --s: var(--status-processing); --s-fg: var(--status-processing-fg); }
+  [data-status='ready_for_pickup'] { --s: var(--status-ready_for_pickup); --s-fg: var(--status-ready_for_pickup-fg); }
+  [data-status='shipped'] { --s: var(--status-shipped); --s-fg: var(--status-shipped-fg); }
+  [data-status='completed'] { --s: var(--status-completed); --s-fg: var(--status-completed-fg); }
+  [data-status='rejected'] { --s: var(--status-rejected); --s-fg: var(--status-rejected-fg); }
+  [data-status='cancelled'] { --s: var(--status-cancelled); --s-fg: var(--status-cancelled-fg); }
+
+  .status-chip {
+    color: var(--s-fg);
+    background: color-mix(in srgb, var(--s) var(--status-bg-mix), transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--s) 28%, transparent);
+  }
+  .status-dot {
+    background: var(--s);
+  }
+  .status-text {
+    color: var(--s-fg);
+  }
+  .status-ring {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--s) 22%, transparent);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
