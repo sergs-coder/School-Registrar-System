@@ -4,7 +4,15 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models import AttachmentKind, DeliveryMethod, RequestStatus, ReviewStatus
+from app.models import (
+    AttachmentKind,
+    DeliveryMethod,
+    IssuedKind,
+    PaymentMethod,
+    PaymentStatus,
+    RequestStatus,
+    ReviewStatus,
+)
 from app.schemas.catalog import DocumentTypeOut
 from app.schemas.common import ORM
 
@@ -78,6 +86,47 @@ class AttachmentOut(ORM):
     created_at: datetime
 
 
+class PaymentOut(BaseModel):
+    id: int
+    amount: Decimal
+    method: PaymentMethod
+    payer_reference: str | None
+    paid_at: datetime | None
+    status: PaymentStatus
+    remarks: str | None
+    verified_at: datetime | None
+    verified_by_name: str | None = None
+    proof: AttachmentOut | None
+    created_at: datetime
+
+
+class IssuedDocumentOut(BaseModel):
+    id: int
+    kind: IssuedKind
+    code: str
+    verify_url: str
+    issued_at: datetime
+    revoked_at: datetime | None
+    revoke_reason: str | None
+    filename: str | None = None
+
+
+class VerifyOut(BaseModel):
+    """What anyone holding a code may see. Kept to what is printed on the document itself."""
+
+    state: Literal["valid", "revoked", "claimed", "not_claimable"]
+    message: str
+    kind: IssuedKind
+    code: str
+    reference_no: str
+    document_name: str
+    holder_name: str
+    student_no_masked: str
+    copies: int
+    issued_at: datetime
+    revoked_at: datetime | None = None
+
+
 class HistoryOut(BaseModel):
     id: int
     from_status: RequestStatus | None
@@ -109,6 +158,8 @@ class RequestDetail(RequestListItem):
     fee_breakdown: list[FeeLine]
     completed_at: datetime | None
     attachments: list[AttachmentOut]
+    payments: list[PaymentOut]
+    e_documents: list[IssuedDocumentOut]
     history: list[HistoryOut]
     allowed_actions: list[str]
     latest_remarks: str | None

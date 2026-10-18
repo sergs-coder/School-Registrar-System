@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { homePathFor, useAuth } from '@/lib/auth'
 
-function PublicShell({ children }) {
+export function PublicShell({ children }) {
   const { user } = useAuth()
   return (
     <div className="min-h-dvh bg-background">

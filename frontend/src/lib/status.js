@@ -78,7 +78,11 @@ export const STAFF_ACTIONS = {
     remarksHelp: 'The student sees this message and gets an email.',
   },
   awaiting_payment: { label: 'Approve', variant: 'primary', hint: 'The student will be asked to pay the fee.' },
-  payment_verified: { label: 'Mark payment verified', variant: 'primary' },
+  payment_verified: {
+    label: 'Mark payment verified',
+    variant: 'primary',
+    hint: 'Without an uploaded proof, it’s recorded as paid at the cashier.',
+  },
   processing: { label: 'Start processing', variant: 'primary' },
   ready_for_pickup: {
     label: 'Ready for pick-up',
@@ -113,3 +117,16 @@ export const QUEUE_VIEWS = [
   { key: 'closed', label: 'Closed', statuses: ['completed', 'rejected', 'cancelled'] },
   { key: 'all', label: 'All', statuses: [] },
 ]
+
+export const PAYMENT_METHODS = {
+  gcash: { label: 'GCash', referenceLabel: 'GCash reference no.' },
+  maya: { label: 'Maya', referenceLabel: 'Maya reference no.' },
+  bank_deposit: { label: 'Bank deposit', referenceLabel: 'Deposit slip / transaction no.' },
+  cashier: { label: 'University Cashier', referenceLabel: 'Official receipt (OR) no.' },
+}
+
+export const PAYMENT_STATUS = {
+  pending: { label: 'Being checked', tone: 'info' },
+  verified: { label: 'Verified', tone: 'success' },
+  rejected: { label: 'Not accepted', tone: 'danger' },
+}

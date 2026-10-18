@@ -40,6 +40,7 @@ class QueueItem(BaseModel):
     updated_at: datetime
     is_overdue: bool
     assigned_to: StaffBrief | None
+    payment_pending: bool = False
 
 
 class TransitionOption(BaseModel):
@@ -53,6 +54,7 @@ class StaffRequestDetail(RequestDetail):
     is_overdue: bool
     version: int
     transitions: list[TransitionOption]
+    can_upload_edocument: bool
 
 
 class TransitionIn(BaseModel):
@@ -82,6 +84,15 @@ class AssignIn(BaseModel):
     staff_id: int | None
 
 
+class PaymentRejectIn(BaseModel):
+    remarks: str = Field(min_length=1, max_length=500)
+    version: int | None = Field(default=None, description="Expected version; 409 if someone else changed it first")
+
+
+class RevokeIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=300)
+
+
 class AttachmentReviewIn(BaseModel):
     review_status: ReviewStatus
 
@@ -103,6 +114,7 @@ class Dashboard(BaseModel):
     assigned_to_me: int
     submitted_today: int
     completed_this_week: int
+    payments_to_verify: int
     daily_submissions: list[DayCount]
     overdue: list[QueueItem]
     pickups: list[QueueItem]

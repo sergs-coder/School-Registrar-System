@@ -10,3 +10,5 @@ argon2-cffi==25.1.0
 python-multipart==0.0.32
 cryptography==50.0.2
 psycopg[binary]==3.3.6
+reportlab==5.0.1
+pypdf==6.21.1

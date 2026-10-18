@@ -9,6 +9,7 @@ from app.models.catalog import DocumentType
 from app.models.enums import (
     AttachmentKind,
     DeliveryMethod,
+    IssuedKind,
     PaymentMethod,
     PaymentStatus,
     RequestStatus,
@@ -57,6 +58,9 @@ class Request(TimestampMixin, Base):
         back_populates="request", order_by="RequestStatusHistory.id"
     )
     payments: Mapped[list["Payment"]] = relationship(back_populates="request", order_by="Payment.id")
+    issued_documents: Mapped[list["IssuedDocument"]] = relationship(
+        back_populates="request", order_by="IssuedDocument.id"
+    )
 
     __mapper_args__ = {"version_id_col": version}
 
@@ -113,3 +117,24 @@ class Payment(TimestampMixin, Base):
     remarks: Mapped[str | None] = mapped_column(String(500))
 
     request: Mapped[Request] = relationship(back_populates="payments")
+    proof: Mapped[RequestAttachment | None] = relationship()
+    verified_by: Mapped[User | None] = relationship()
+
+
+class IssuedDocument(Base):
+    """A slip or e-document the Registrar handed out, identified by the code in its QR."""
+
+    __tablename__ = "issued_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(16), unique=True, index=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("requests.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[IssuedKind] = enum_col(IssuedKind)
+    attachment_id: Mapped[int | None] = mapped_column(ForeignKey("request_attachments.id"))
+    issued_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    issued_at: Mapped[datetime]
+    revoked_at: Mapped[datetime | None]
+    revoke_reason: Mapped[str | None] = mapped_column(String(300))
+
+    request: Mapped[Request] = relationship(back_populates="issued_documents")
+    attachment: Mapped[RequestAttachment | None] = relationship()

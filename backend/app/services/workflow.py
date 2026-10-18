@@ -112,6 +112,10 @@ def transition(
         )
     if to_status in (S.completed, S.rejected, S.cancelled):
         req.completed_at = now
+    if to_status == S.payment_verified:
+        from app.services.payments import record_verification
+
+        record_verification(db, req, actor, now)
 
     entry = RequestStatusHistory(
         request_id=req.id,

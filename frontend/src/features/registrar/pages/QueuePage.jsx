@@ -9,6 +9,7 @@ import {
   Package,
   Search,
   Truck,
+  Wallet,
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -92,6 +93,7 @@ export function QueuePage() {
     date_to: get('to') || undefined,
     overdue: get('overdue') === '1' || undefined,
     assigned: get('assigned') || undefined,
+    payment: get('payment') || undefined,
     sort,
     page,
     page_size: pageSize,
@@ -106,7 +108,7 @@ export function QueuePage() {
 
   const allChecked = items.length > 0 && items.every((i) => selected.has(i.reference_no))
   const someChecked = items.some((i) => selected.has(i.reference_no))
-  const activeFilters = ['q', 'doc', 'program', 'from', 'to', 'overdue', 'assigned'].filter((k) => get(k)).length
+  const activeFilters = ['q', 'doc', 'program', 'from', 'to', 'overdue', 'assigned', 'payment'].filter((k) => get(k)).length
 
   function toggleSort(key) {
     update({ sort: sort === key ? `-${key}` : sort === `-${key}` ? key : `-${key}` })
@@ -268,6 +270,7 @@ export function QueuePage() {
                         </td>
                         <td className="px-3 py-3">
                           <StatusBadge status={r.status} size="sm" />
+                          {r.payment_pending && <PaymentPendingTag />}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <p className="text-fg">{formatDate(r.submitted_at)}</p>
@@ -328,6 +331,7 @@ export function QueuePage() {
                         <span className="font-mono text-[13px] font-medium text-link">{r.reference_no}</span>
                         <StatusBadge status={r.status} size="sm" />
                       </div>
+                      {r.payment_pending && <PaymentPendingTag />}
                       <p className="font-medium text-fg">{r.student.full_name}</p>
                       <p className="truncate text-sm text-muted">{r.document_type.name}</p>
                       <p className={cn('text-xs', r.is_overdue ? 'font-semibold text-danger' : 'text-muted')}>
@@ -477,18 +481,34 @@ function Filters({ get, update, search, setSearch, docTypes, activeFilters }) {
       >
         <AlarmClock /> Overdue
       </Button>
+      <Button
+        variant={get('payment') ? 'primary' : 'secondary'}
+        className="h-10"
+        aria-pressed={Boolean(get('payment'))}
+        onClick={() => update({ payment: get('payment') ? '' : 'pending' })}
+      >
+        <Wallet /> Proof to check
+      </Button>
       {activeFilters > 0 && (
         <Button
           variant="ghost"
           className="h-10"
           onClick={() => {
             setSearch('')
-            update({ q: '', doc: '', program: '', from: '', to: '', overdue: '', assigned: '' })
+            update({ q: '', doc: '', program: '', from: '', to: '', overdue: '', assigned: '', payment: '' })
           }}
         >
           Clear filters
         </Button>
       )}
     </div>
+  )
+}
+
+function PaymentPendingTag() {
+  return (
+    <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-info">
+      <Wallet className="size-3.5" aria-hidden="true" /> Proof to check
+    </p>
   )
 }

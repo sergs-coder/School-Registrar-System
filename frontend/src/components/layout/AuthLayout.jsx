@@ -64,6 +64,10 @@ export function AuthLayout() {
             Data Privacy Notice
           </Link>
           <span aria-hidden="true"> · </span>
+          <Link to="/verify" className="hover:text-fg hover:underline">
+            Verify a document
+          </Link>
+          <span aria-hidden="true"> · </span>
           registrar@tua.edu.ph
         </p>
       </div>

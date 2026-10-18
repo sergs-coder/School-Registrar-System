@@ -87,6 +87,18 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
 - **Overdue:** a request is overdue when its estimated release date has passed while the Registrar holds it
   (submitted, under review, resubmitted, payment verified, processing). Time spent waiting on the student
   doesn't count.
+- **Payments:** while a request is Awaiting Payment, the student uploads a receipt (method, OR/transaction no.,
+  date paid). Staff verify it with "Mark payment verified" or reject it with a reason, which emails the student and
+  lets them upload again. Verifying goes through the state machine, so every verified request has exactly one
+  verified `payments` row; with no uploaded proof it is recorded as a cashier payment.
+- **Pick-up slips and e-documents:** a pick-up slip PDF (with QR) is available while a pick-up request is Ready for
+  Pick-up. For document types with `allow_edocument`, staff upload the signed PDF once processing starts; students
+  can download it once the request is released. The clean file is never served to students: every download is
+  stamped on each page with the holder's name, reference number and a QR code, and locked against editing.
+  Replacing or revoking a copy invalidates its code.
+- **QR verification:** each slip and e-document has a random 16-character code (`issued_documents`). Anyone can
+  check it at `/verify/<code>` without logging in (rate-limited). The page shows only what is printed on the
+  document, with the student number masked.
 - **Concurrency:** staff actions send the request version they saw; if a colleague changed it first, the
   API answers `409 STALE_REQUEST` instead of silently overwriting.
 - **Errors:** every API error uses `{"error": {"code", "message", "details": [{field, message}]}}`.
@@ -98,6 +110,6 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
 - [x] **Phase 2:** registrar dashboard, queue (filters, sorting, bulk actions), slide-over request panel,
       status updates with remarks, internal staff notes, assignment, attachment review, in-app and email
       notifications
-- [ ] **Phase 3:** payments and proof upload, pick-up slips (PDF), watermarked e-documents, QR verification
+- [x] **Phase 3:** payments and proof upload, pick-up slips (PDF), watermarked e-documents, QR verification
 - [ ] **Phase 4:** admin settings (document types, fees, holidays, users, announcements), reports and
       exports, audit log viewer, accessibility and performance polish

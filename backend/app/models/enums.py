@@ -71,3 +71,8 @@ class PaymentStatus(str, Enum):
 class AnnouncementLevel(str, Enum):
     info = "info"
     warning = "warning"
+
+
+class IssuedKind(str, Enum):
+    pickup_slip = "pickup_slip"
+    e_document = "e_document"

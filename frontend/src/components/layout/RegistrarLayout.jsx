@@ -11,7 +11,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { Logo } from '@/components/brand/Logo'
 import { SkipLink } from '@/components/layout/StudentLayout'
@@ -28,8 +28,8 @@ const SECTIONS = [
     items: [
       { to: '/registrar', label: 'Dashboard', icon: LayoutDashboard, end: true },
       { to: '/registrar/requests', label: 'Request queue', icon: ClipboardList },
-      { label: 'Payments', icon: Wallet, phase: 3 },
-      { label: 'Releases', icon: PackageCheck, phase: 3 },
+      { to: '/registrar/requests?tab=payment', tab: 'payment', label: 'Payments', icon: Wallet },
+      { to: '/registrar/requests?tab=release', tab: 'release', label: 'Releases', icon: PackageCheck },
     ],
   },
   {
@@ -45,15 +45,23 @@ const SECTIONS = [
   },
 ]
 
+// Queue tabs that have their own sidebar entry; "Request queue" is active on every other tab.
+const TAB_LINKS = ['payment', 'release']
+
 function SidebarNav() {
   const { user } = useAuth()
+  const location = useLocation()
+  const currentTab = new URLSearchParams(location.search).get('tab')
+  // NavLink matches the path only, so queue entries also compare the ?tab= they point at.
+  const tabMatches = (to, tab) =>
+    !to.startsWith('/registrar/requests') || (tab ? currentTab === tab : !TAB_LINKS.includes(currentTab))
   return (
     <nav aria-label="Registrar" className="space-y-6">
       {SECTIONS.filter((s) => !s.admin || user.role === 'admin').map((section) => (
         <div key={section.title}>
           <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-subtle">{section.title}</p>
           <ul className="space-y-0.5">
-            {section.items.map(({ to, label, icon: Icon, end, phase }) => (
+            {section.items.map(({ to, tab, label, icon: Icon, end, phase }) => (
               <li key={label}>
                 {to ? (
                   <NavLink
@@ -62,9 +70,12 @@ function SidebarNav() {
                     className={({ isActive }) =>
                       cn(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',
-                        isActive ? 'bg-primary-soft text-link' : 'text-muted hover:bg-surface-muted hover:text-fg',
+                        isActive && tabMatches(to, tab)
+                          ? 'bg-primary-soft text-link'
+                          : 'text-muted hover:bg-surface-muted hover:text-fg',
                       )
                     }
+                    aria-current={tabMatches(to, tab) ? undefined : false}
                   >
                     <Icon className="size-4" aria-hidden="true" /> {label}
                   </NavLink>

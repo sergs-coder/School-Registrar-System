@@ -16,6 +16,7 @@ import { QueuePage } from '@/features/registrar/pages/QueuePage'
 import { MyRequestsPage } from '@/features/requests/pages/MyRequestsPage'
 import { RequestDetailPage } from '@/features/requests/pages/RequestDetailPage'
 import { EditRequestPage, NewRequestPage } from '@/features/requests/pages/RequestWizardPage'
+import { VerifyPage } from '@/features/verify/VerifyPage'
 import { NotFoundPage, PrivacyPage } from '@/pages/PublicPages'
 
 export const router = createBrowserRouter([
@@ -34,6 +35,8 @@ export const router = createBrowserRouter([
   },
   { path: '/consent', element: <ConsentPage /> },
   { path: '/privacy', element: <PrivacyPage /> },
+  { path: '/verify', element: <VerifyPage /> },
+  { path: '/verify/:code', element: <VerifyPage /> },
   {
     element: <RequireAuth roles={['student']} />,
     children: [

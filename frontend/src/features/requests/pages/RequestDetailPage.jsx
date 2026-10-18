@@ -2,10 +2,12 @@ import {
   ArrowLeft,
   Ban,
   CalendarClock,
+  Clock,
   Copy,
   FileText,
   Package,
   Pencil,
+  Printer,
   Trash2,
   Truck,
   Wallet,
@@ -25,8 +27,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } f
 import { Textarea } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSiteInfo } from '@/features/catalog/api'
-import { openAttachment, useCancelRequest, useDeleteDraft, useRequest } from '@/features/requests/api'
+import { openAttachment, openPickupSlip, useCancelRequest, useDeleteDraft, useRequest } from '@/features/requests/api'
 import { FeeSummary } from '@/features/requests/components/FeeSummary'
+import { EDocumentCard, PaymentCard } from '@/features/requests/components/PaymentCard'
 import { addressText, formatFieldValue } from '@/features/requests/components/wizard/ReviewStep'
 import { errorMessage } from '@/lib/errors'
 import { STATUS, TERMINAL } from '@/lib/status'
@@ -48,6 +51,7 @@ export function RequestDetailPage() {
 
   const doc = r.document_type_full
   const requiresPayment = doc.requires_payment && Number(r.fee_total) > 0
+  const files = r.attachments.filter((a) => a.kind === 'requirement')
 
   return (
     <div className="space-y-6">
@@ -74,6 +78,9 @@ export function RequestDetailPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
+          <EDocumentCard request={r} />
+          <PaymentCard request={r} />
+
           <Card>
             <CardHeader>
               <CardTitle>Request details</CardTitle>
@@ -97,14 +104,14 @@ export function RequestDetailPage() {
             </CardContent>
           </Card>
 
-          {r.attachments.length > 0 && (
+          {files.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Your files</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {r.attachments.map((a) => {
+                  {files.map((a) => {
                     const spec = doc.required_attachments.find((s) => s.key === a.requirement_key)
                     return (
                       <li key={a.id} className="flex items-center gap-3 py-3">
@@ -218,17 +225,25 @@ function StatusCallout({ request: r, requiresPayment }) {
         </Alert>
       )
     case 'awaiting_payment':
-      return (
-        <Alert tone="brand" icon={Wallet} title={`Approved. Please pay the fee to continue.`}>
-          {site?.payment_instructions} Online proof-of-payment upload is coming soon; for now, present your receipt at the
-          Registrar’s Office with reference <strong className="font-mono">{r.reference_no}</strong>.
+      return r.payments.some((p) => p.status === 'pending') ? (
+        <Alert tone="info" icon={Clock} title="Payment sent. We’re checking it.">
+          Your request moves to processing as soon as the Registrar’s Office verifies your payment.
+        </Alert>
+      ) : (
+        <Alert tone="brand" icon={Wallet} title="Approved. Please pay the fee to continue.">
+          Pay the fee, then upload a photo of your receipt in the Payment section below.
         </Alert>
       )
     case 'ready_for_pickup':
       return (
-        <Alert tone="success" icon={Package} title="Your document is ready for pick-up">
-          Bring a valid ID and your reference number <strong className="font-mono">{r.reference_no}</strong> to the{' '}
-          {contact?.office ?? 'Registrar’s Office'}. {contact?.hours}
+        <Alert
+          tone="success"
+          icon={Package}
+          title="Your document is ready for pick-up"
+          action={r.allowed_actions.includes('pickup_slip') && <PickupSlipButton reference={r.reference_no} />}
+        >
+          Bring a valid ID and your pick-up slip (or reference number <strong className="font-mono">{r.reference_no}</strong>)
+          to the {contact?.office ?? 'Registrar’s Office'}. {contact?.hours}
         </Alert>
       )
     case 'shipped':
@@ -251,6 +266,29 @@ function StatusCallout({ request: r, requiresPayment }) {
         </p>
       ) : null
   }
+}
+
+function PickupSlipButton({ reference }) {
+  const [busy, setBusy] = useState(false)
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      loading={busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          await openPickupSlip(reference)
+        } catch (err) {
+          toast.error(errorMessage(err))
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      {!busy && <Printer />} Pick-up slip (PDF)
+    </Button>
+  )
 }
 
 function EditButton({ r, label }) {

@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react'
+import { Lock, Wallet } from 'lucide-react'
 
 import { STATUS } from '@/lib/status'
 import { cn, formatDateTime } from '@/lib/utils'
@@ -10,8 +10,11 @@ export function StatusTimeline({ history }) {
     <ol className="relative space-y-6">
       {items.map((h, i) => {
         const isNote = h.is_internal && h.from_status === h.to_status
+        // Same-status, student-visible entries are updates within a step (e.g., a payment proof sent or rejected).
+        const isUpdate = !h.is_internal && h.from_status === h.to_status
         const meta = STATUS[h.to_status] ?? STATUS.draft
-        const Icon = isNote ? Lock : meta.icon
+        const isPayment = isUpdate && h.to_status === 'awaiting_payment'
+        const Icon = isNote ? Lock : isPayment ? Wallet : meta.icon
         return (
           <li key={h.id} className="relative flex gap-4">
             {i < items.length - 1 && (
@@ -32,7 +35,7 @@ export function StatusTimeline({ history }) {
                   <span className="font-semibold text-fg">Internal note</span>
                 ) : (
                   <span data-status={h.to_status} className="status-text font-semibold">
-                    {meta.label}
+                    {isPayment ? 'Payment update' : isUpdate ? `${meta.label} · update` : meta.label}
                   </span>
                 )}
                 <span className="text-muted">by {h.actor_name}</span>

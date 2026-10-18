@@ -48,16 +48,23 @@ def notify_status_change(db: Session, req: Request, to_status: RequestStatus, ac
     body = MESSAGES.get(to_status, "")
     if remarks and to_status in (S.needs_correction, S.rejected, S.shipped, S.ready_for_pickup):
         body = f"{body} Remarks: {remarks}"
+    notify_student(db, req, "status_change", STATUS_LABELS[to_status], body,
+                   email=to_status in EMAIL_STATUSES, at=at)
+
+
+def notify_student(db: Session, req: Request, type_: str, headline: str, body: str, *, email: bool, at=None) -> None:
+    """Adds an in-app notification for the request's owner and, if `email`, queues the email too."""
+    owner = req.student.user
     note = Notification(
         user_id=owner.id,
         request_id=req.id,
-        type="status_change",
-        title=f"{req.reference_no}: {STATUS_LABELS[to_status]}",
+        type=type_,
+        title=f"{req.reference_no}: {headline}",
         body=body,
         created_at=at or utcnow(),
     )
     db.add(note)
-    if to_status in EMAIL_STATUSES:
+    if email:
         db.info.setdefault(OUTBOX_KEY, []).append((note, owner.email, req.reference_no, req.document_type.name))
 
 

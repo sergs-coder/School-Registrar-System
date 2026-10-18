@@ -12,6 +12,8 @@ from app.db.session import get_db
 from app.models import (
     TERMINAL_STATUSES,
     DocumentType,
+    Payment,
+    PaymentStatus,
     Program,
     Request,
     RequestAttachment,
@@ -30,6 +32,7 @@ from app.schemas.staff import (
     Dashboard,
     DayCount,
     NoteIn,
+    PaymentRejectIn,
     QueueItem,
     StaffBrief,
     StaffRequestDetail,
@@ -40,7 +43,9 @@ from app.schemas.staff import (
 )
 from app.services.audit import audit
 from app.services.business_days import MANILA, manila_date
+from app.services.documents import EDOC_UPLOAD_STATUSES
 from app.services.notifications import dispatch_outbox
+from app.services.payments import pending_payment, reject_payment
 from app.services.workflow import REMARKS_REQUIRED, allowed_transitions, approval_target, transition
 
 router = APIRouter(prefix="/staff", tags=["staff"])
@@ -88,6 +93,7 @@ def _item(req: Request) -> QueueItem:
         student=_student(req.student), copies=req.copies, delivery_method=req.delivery_method.value,
         fee_total=str(req.fee_total), submitted_at=req.submitted_at, estimated_release_date=req.estimated_release_date,
         updated_at=req.updated_at, is_overdue=_is_overdue(req), assigned_to=_staff(req.assigned_to),
+        payment_pending=req.status == S.awaiting_payment and pending_payment(req) is not None,
     )
 
 
@@ -102,6 +108,7 @@ def _staff_detail(req: Request, user: User) -> StaffRequestDetail:
         transitions=[
             TransitionOption(to_status=t, requires_remarks=t in REMARKS_REQUIRED) for t in allowed_transitions(req, user)
         ],
+        can_upload_edocument=req.document_type.allow_edocument and req.status in EDOC_UPLOAD_STATUSES,
     )
 
 
@@ -118,8 +125,13 @@ def _queue_query() -> Select:
             selectinload(Request.student).selectinload(Student.user),
             selectinload(Request.document_type),
             selectinload(Request.assigned_to),
+            selectinload(Request.payments),
         )
     )
+
+
+# Awaiting payment with an uploaded proof that nobody has checked yet.
+PAYMENT_TO_VERIFY = (Request.status == S.awaiting_payment) & Request.payments.any(Payment.status == PaymentStatus.pending)
 
 
 def _manila_start(d) -> datetime:
@@ -164,8 +176,10 @@ def dashboard(user: User = Depends(require_staff), db: Session = Depends(get_db)
             Request.status == S.completed, Request.completed_at >= _manila_start(today - timedelta(days=6))
         )
     )
+    payments_to_verify = db.scalar(select(func.count()).select_from(Request).where(PAYMENT_TO_VERIFY))
     return Dashboard(
         counts=counts,
+        payments_to_verify=payments_to_verify,
         active_total=sum(by_status.get(s, 0) for s in OPEN),
         overdue_total=overdue_total,
         assigned_to_me=assigned_to_me,
@@ -189,6 +203,7 @@ def queue(
     date_to: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     overdue: bool = False,
     assigned: str | None = Query(default=None, pattern="^(me|unassigned)$"),
+    payment: str | None = Query(default=None, pattern="^pending$"),
     sort: str = Query(default="-submitted_at"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
@@ -224,6 +239,8 @@ def queue(
         stmt = stmt.where(Request.assigned_to_id == (user.staff.id if user.staff else -1))
     elif assigned == "unassigned":
         stmt = stmt.where(Request.assigned_to_id.is_(None))
+    if payment == "pending":
+        stmt = stmt.where(PAYMENT_TO_VERIFY)
 
     key = sort.lstrip("-")
     if key not in SORTS:
@@ -301,6 +318,22 @@ def bulk_transition(
     db.commit()
     dispatch_outbox(db, tasks)
     return results
+
+
+@router.post("/requests/{ref}/payments/{payment_id}/reject", response_model=StaffRequestDetail)
+def staff_reject_payment(
+    ref: str, payment_id: int, body: PaymentRejectIn, tasks: BackgroundTasks,
+    user: User = Depends(require_staff), db: Session = Depends(get_db),
+):
+    """The request stays Awaiting Payment; the student is told why and can upload a new proof."""
+    req = _load_staff(db, ref, user)
+    if body.version is not None and body.version != req.version:
+        raise AppError("STALE_REQUEST", "Someone else updated this request a moment ago. Review the latest details and try again.", 409)
+    reject_payment(db, req, payment_id, user, body.remarks)
+    audit(db, "payment_rejected", actor=user, entity_type="request", entity_id=ref, meta={"payment_id": payment_id})
+    db.commit()
+    dispatch_outbox(db, tasks)
+    return _staff_detail(req, user)
 
 
 @router.post("/requests/{ref}/notes", response_model=StaffRequestDetail)

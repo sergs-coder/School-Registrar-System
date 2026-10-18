@@ -21,6 +21,11 @@ from app.models import (
     DeliveryMethod,
     DocumentType,
     Holiday,
+    IssuedDocument,
+    IssuedKind,
+    Payment,
+    PaymentMethod,
+    PaymentStatus,
     Program,
     Request,
     RequestAttachment,
@@ -35,6 +40,7 @@ from app.models import (
 )
 from app.seed import data
 from app.services.app_settings import DEFAULTS
+from app.services.documents import new_code
 from app.services.fees import compute_fees, make_snapshot
 from app.services.reference_no import next_reference_no
 from app.services.uploads import sha256
@@ -226,8 +232,40 @@ def fill_form(doc: DocumentType) -> dict:
     return values
 
 
+def _stored_pdf(db: Session, req: Request, kind: AttachmentKind, title: str, filename: str, user: User,
+                at: datetime) -> RequestAttachment:
+    blob = sample_pdf(title)
+    att = RequestAttachment(
+        request_id=req.id, kind=kind, original_filename=filename, storage_key=get_storage().put(blob),
+        mime_type="application/pdf", size_bytes=len(blob), sha256=sha256(blob), uploaded_by_id=user.id, created_at=at,
+        review_status=ReviewStatus.accepted if kind == AttachmentKind.release_document else ReviewStatus.pending,
+    )
+    db.add(att)
+    db.flush()
+    return att
+
+
+def add_payment_proof(db: Session, req: Request, student: User, at: datetime) -> None:
+    """An uploaded receipt waiting for staff; verifying the request later marks it verified."""
+    method = rng.choice([PaymentMethod.gcash, PaymentMethod.gcash, PaymentMethod.maya, PaymentMethod.bank_deposit])
+    proof = _stored_pdf(db, req, AttachmentKind.payment_proof, f"Receipt {req.reference_no}", "receipt.pdf", student, at)
+    payment = Payment(request_id=req.id, amount=req.fee_total, method=method, status=PaymentStatus.pending,
+                      payer_reference=f"{method.value[:2].upper()}-{rng.randint(10**9, 10**10 - 1)}",
+                      paid_at=at - timedelta(hours=2), proof_attachment_id=proof.id, created_at=at, updated_at=at)
+    payment.proof = proof
+    db.add(payment)
+    req.payments.append(payment)
+
+
+def add_e_document(db: Session, req: Request, staff_user: User, at: datetime) -> None:
+    att = _stored_pdf(db, req, AttachmentKind.release_document, req.document_type.name,
+                      f"{req.document_type.code}-{req.reference_no}.pdf", staff_user, at)
+    db.add(IssuedDocument(code=new_code(db), request_id=req.id, kind=IssuedKind.e_document, attachment_id=att.id,
+                          issued_by_id=staff_user.id, issued_at=at))
+
+
 def make_request(db: Session, student: User, doc: DocumentType, target: RequestStatus, staff: list[User],
-                 created: datetime) -> Request:
+                 created: datetime, demo: bool = False) -> Request:
     courier = doc.allow_courier and (target == S.shipped or (target != S.ready_for_pickup and rng.random() < 0.3))
     req = Request(
         reference_no=next_reference_no(db, created.year),
@@ -271,9 +309,16 @@ def make_request(db: Session, student: User, doc: DocumentType, target: RequestS
         if at > NOW:
             at = NOW - timedelta(minutes=rng.randint(5, 600))
         actor = student if who == "student" else (req.assigned_to.user if req.assigned_to else rng.choice(staff))
+        if status == S.payment_verified and rng.random() < 0.7:  # the rest paid at the cashier window
+            add_payment_proof(db, req, student, at - timedelta(hours=rng.randint(1, 3)))
+        if status in (S.ready_for_pickup, S.shipped) and doc.allow_edocument and (demo or rng.random() < 0.6):
+            add_e_document(db, req, actor, at - timedelta(minutes=30))
         transition(db, req, status, actor, remarks, at=at)
         if status == S.under_review and req.assigned_to is None:
             req.assigned_to = actor.staff  # the reviewer owns the request, as in the real flow
+    if target == S.awaiting_payment and not demo and rng.random() < 0.6:
+        at = min(at + timedelta(hours=rng.randint(2, 20)), NOW - timedelta(minutes=5))
+        add_payment_proof(db, req, student, at)  # the demo student's is left for you to upload
     req.updated_at = at
     return req
 
@@ -294,7 +339,7 @@ def seed_requests(db: Session, students: list[User], staff: list[User]) -> int:
     for i, (status, code) in enumerate(demo_plan):
         doc = docs[code]
         created = NOW - timedelta(days=30 - i * 2, hours=rng.randint(0, 8))
-        make_request(db, demo, doc, status, workers, created)
+        make_request(db, demo, doc, status, workers, created, demo=True)
         count += 1
 
     # Everyone else: a realistic spread weighted toward active and completed work.

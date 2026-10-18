@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, Request as HttpRequest, Response, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -11,6 +13,10 @@ from app.models import (
     AttachmentKind,
     DeliveryMethod,
     DocumentType,
+    IssuedDocument,
+    IssuedKind,
+    Payment,
+    PaymentMethod,
     Request,
     RequestAttachment,
     RequestStatus,
@@ -20,6 +26,8 @@ from app.models import (
 from app.schemas.common import Page
 from app.schemas.requests import (
     HistoryOut,
+    IssuedDocumentOut,
+    PaymentOut,
     QuoteIn,
     QuoteOut,
     RemarksIn,
@@ -30,9 +38,11 @@ from app.schemas.requests import (
 )
 from app.services.audit import audit
 from app.services.business_days import estimate_release_date, manila_date
+from app.services.documents import RELEASED, display_code, verify_url
 from app.services.fees import compute_fees, make_snapshot
 from app.services.forms import clean_form_data
 from app.services.notifications import dispatch_outbox
+from app.services.payments import can_submit_payment, submit_payment
 from app.services.reference_no import next_reference_no
 from app.services.uploads import safe_filename, sha256, validate_upload
 from app.services.workflow import allowed_transitions, transition
@@ -50,7 +60,13 @@ def _load(db: Session, ref: str, user: User) -> Request:
     q = (
         select(Request)
         .where(Request.reference_no == ref)
-        .options(selectinload(Request.attachments), selectinload(Request.history), selectinload(Request.document_type))
+        .options(
+            selectinload(Request.attachments),
+            selectinload(Request.history),
+            selectinload(Request.document_type),
+            selectinload(Request.payments).selectinload(Payment.proof),
+            selectinload(Request.issued_documents).selectinload(IssuedDocument.attachment),
+        )
     )
     if user.role == Role.student:
         q = q.where(Request.student_id == user.student.id)
@@ -104,6 +120,30 @@ def _validate_for_submit(db: Session, req: Request) -> None:
         raise AppError("VALIDATION_ERROR", "Your request is missing some information.", 422, errors)
 
 
+def _payment_out(p: Payment, is_student: bool) -> PaymentOut:
+    return PaymentOut(
+        id=p.id, amount=p.amount, method=p.method, payer_reference=p.payer_reference, paid_at=p.paid_at,
+        status=p.status, remarks=p.remarks, verified_at=p.verified_at,
+        verified_by_name=None if is_student or p.verified_by is None else p.verified_by.display_name,
+        proof=p.proof, created_at=p.created_at,
+    )
+
+
+def _e_documents(req: Request, is_student: bool) -> list[IssuedDocumentOut]:
+    """Students see the current e-copy once the document is released; staff see every copy ever issued."""
+    docs = [d for d in req.issued_documents if d.kind == IssuedKind.e_document]
+    if is_student:
+        docs = [d for d in docs if d.revoked_at is None] if req.status in RELEASED else []
+    return [
+        IssuedDocumentOut(
+            id=d.id, kind=d.kind, code=display_code(d.code), verify_url=verify_url(d.code), issued_at=d.issued_at,
+            revoked_at=d.revoked_at, revoke_reason=d.revoke_reason,
+            filename=None if is_student or d.attachment is None else d.attachment.original_filename,
+        )
+        for d in docs
+    ]
+
+
 def _detail(req: Request, user: User) -> RequestDetail:
     is_student = user.role == Role.student
     history = []
@@ -123,6 +163,10 @@ def _detail(req: Request, user: User) -> RequestDetail:
         actions.append("edit")
     if req.status == S.draft and is_student:
         actions.append("delete")
+    if is_student and can_submit_payment(req):
+        actions.append("pay")
+    if req.status == S.ready_for_pickup and req.delivery_method == DeliveryMethod.pickup:
+        actions.append("pickup_slip")
     latest = next((h.remarks for h in reversed(req.history) if h.remarks and not h.is_internal), None)
     base = RequestListItem.model_validate(req).model_dump()
     return RequestDetail(
@@ -131,7 +175,11 @@ def _detail(req: Request, user: User) -> RequestDetail:
         delivery_address=req.delivery_address,
         fee_breakdown=req.fee_breakdown or [],
         completed_at=req.completed_at,
-        attachments=[a for a in req.attachments if a.deleted_at is None],
+        # The clean release file never reaches students; they get the stamped copy via /issued/{id}.
+        attachments=[a for a in req.attachments if a.deleted_at is None
+                     and not (is_student and a.kind == AttachmentKind.release_document)],
+        payments=[_payment_out(p, is_student) for p in req.payments],
+        e_documents=_e_documents(req, is_student),
         history=history,
         allowed_actions=actions,
         latest_remarks=latest,
@@ -210,7 +258,7 @@ def create_draft(body: RequestCreate, http: HttpRequest, user: User = Depends(re
         status=S.draft,
     )
     req.document_type = doc
-    req.attachments, req.history = [], []
+    req.attachments, req.history, req.payments, req.issued_documents = [], [], [], []
     _apply_changes(db, req, body.model_dump(mode="json", exclude={"document_type_id"}))
     db.add(req)
     db.flush()
@@ -347,13 +395,36 @@ def delete_attachment(ref: str, attachment_id: int, user: User = Depends(require
     return _detail(req, user)
 
 
+@router.post("/requests/{ref}/payments", response_model=RequestDetail, status_code=status.HTTP_201_CREATED)
+async def upload_payment(
+    ref: str,
+    http: HttpRequest,
+    method: PaymentMethod = Form(),
+    payer_reference: str = Form(max_length=100),
+    paid_on: date = Form(),
+    file: UploadFile = File(...),
+    user: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    req = _load(db, ref, user)
+    data = await file.read()
+    payment = submit_payment(db, req, user, method=method, payer_reference=payer_reference, paid_on=paid_on,
+                             filename=file.filename or "", data=data)
+    audit(db, "payment_submitted", actor=user, entity_type="request", entity_id=ref, http=http,
+          meta={"method": method.value, "amount": str(payment.amount)})
+    db.commit()
+    return _detail(req, user)
+
+
 @router.get("/attachments/{attachment_id}/download")
 def download_attachment(attachment_id: int, http: HttpRequest, user: User = Depends(require_consent), db: Session = Depends(get_db)):
     att = db.get(RequestAttachment, attachment_id)
     if att is None or att.deleted_at is not None:
         raise NotFound("File not found.")
     req = att.request
-    if user.role == Role.student and (user.student is None or req.student_id != user.student.id):
+    if user.role == Role.student and (
+        user.student is None or req.student_id != user.student.id or att.kind == AttachmentKind.release_document
+    ):
         raise NotFound("File not found.")
     data = get_storage().get(att.storage_key)
     audit(db, "attachment_downloaded", actor=user, entity_type="attachment", entity_id=att.id, http=http,

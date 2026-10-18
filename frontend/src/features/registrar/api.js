@@ -66,6 +66,24 @@ export const useAssign = (ref) =>
 export const useReviewAttachment = () =>
   useStaffMutation(async ({ id, review_status }) => (await api.patch(`/staff/attachments/${id}`, { review_status })).data)
 
+export const useRejectPayment = (ref) =>
+  useStaffMutation(
+    async ({ paymentId, remarks, version }) =>
+      (await api.post(`/staff/requests/${ref}/payments/${paymentId}/reject`, { remarks, version })).data,
+  )
+
+export const useUploadEDocument = (ref) =>
+  useStaffMutation(async (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return (await api.post(`/staff/requests/${ref}/e-document`, form)).data
+  })
+
+export const useRevokeEDocument = (ref) =>
+  useStaffMutation(
+    async ({ id, reason }) => (await api.post(`/staff/requests/${ref}/e-documents/${id}/revoke`, { reason })).data,
+  )
+
 export function useBulkTransition() {
   const qc = useQueryClient()
   return useMutation({
