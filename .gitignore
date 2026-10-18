@@ -1,0 +1,25 @@
+# Dependencies and build output (recreate with `pip install` / `npm install` / `npm run build`)
+node_modules/
+frontend/dist/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environment (copy from .env.example)
+.env
+!.env.example
+
+# Local data: SQLite database and encrypted uploads
+backend/srm.db
+backend/srm.db-*
+backend/storage/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
