@@ -114,7 +114,7 @@ def notify_status_change(db: Session, req: Request, to_status: RequestStatus, ac
 
 
 def notify_student(db: Session, req: Request, type_: str, headline: str, body: str, *, email: bool, at=None,
-                   next_step: str | None = None) -> None:
+                   next_step: str | None = None, urgent: bool = False) -> None:
     """Adds an in-app notification for the request's owner and, if `email`, queues the tracking email too."""
     owner = req.student.user
     note = Notification(
@@ -133,7 +133,7 @@ def notify_student(db: Session, req: Request, type_: str, headline: str, body: s
         eta = req.estimated_release_date.strftime("%b %d, %Y").replace(" 0", " ")
     update = UpdateEmail(headline=headline, body=body, reference_no=req.reference_no,
                          document_name=req.document_type.name, steps=tracker(req), next_step=next_step,
-                         estimated_release=eta)
+                         estimated_release=eta, urgent=urgent)
     db.info.setdefault(OUTBOX_KEY, []).append(QueuedEmail(note, recipients_for(req), update))
 
 
@@ -143,13 +143,24 @@ def dispatch_outbox(db: Session, tasks: BackgroundTasks | None) -> None:
     if tasks is None:
         return
     for item in outbox:
-        subject = f"[TUA Registrar] {item.note.title}"
-        text, html = render_text(item.email), render_html(item.email)
-        # One message per address, so neither address is exposed to the other's mailbox provider.
-        tasks.add_task(_send_and_mark, item.note.id, item.recipients, subject, text, html)
+        tasks.add_task(_send_and_mark, item.note.id, item.recipients, *_render(item))
+
+
+def send_outbox_now(db: Session) -> int:
+    """Call after commit, outside a request (e.g. the reminder job). Returns how many emails were queued."""
+    outbox: list[QueuedEmail] = db.info.pop(OUTBOX_KEY, [])
+    for item in outbox:
+        _send_and_mark(item.note.id, item.recipients, *_render(item))
+    return len(outbox)
+
+
+def _render(item: QueuedEmail) -> tuple[str, str, str]:
+    prefix = "[TUA Registrar] Action needed: " if item.email.urgent else "[TUA Registrar] "
+    return f"{prefix}{item.note.title}", render_text(item.email), render_html(item.email)
 
 
 def _send_and_mark(notification_id: int, recipients: list[str], subject: str, text: str, html: str) -> None:
+    # One message per address, so neither address is exposed to the other's mailbox provider.
     sent = [send_email(to, subject, text, html) for to in recipients]
     if any(sent):
         db = SessionLocal()

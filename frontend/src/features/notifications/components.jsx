@@ -21,6 +21,11 @@ export function NotificationItem({ n, compact }) {
         className={cn('mt-1.5 size-2 shrink-0 rounded-full', unread ? 'bg-primary dark:bg-primary-300' : 'bg-transparent')}
       />
       <div className="min-w-0 flex-1">
+        {n.type === 'reminder' && (
+          <span className="mb-0.5 inline-block rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-warning">
+            Action needed
+          </span>
+        )}
         <p className={cn('text-sm', unread ? 'font-semibold text-fg' : 'font-medium text-fg')}>
           {n.title}
           {unread && <span className="sr-only"> (unread)</span>}

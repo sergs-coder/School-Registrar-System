@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Moon, Sun } from 'lucide-react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -70,6 +71,7 @@ export function ProfilePage() {
 
         <div className="space-y-6">
           <PersonalEmailCard student={s} universityEmail={user.email} onSaved={(student) => setUser({ ...user, student })} />
+          <RemindersCard student={s} onSaved={(student) => setUser({ ...user, student })} />
           <ContactCard student={s} onSaved={(student) => setUser({ ...user, student })} />
           <AppearanceCard />
         </div>
@@ -190,6 +192,64 @@ function PasswordCard() {
             Update password
           </Button>
         </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function RemindersCard({ student, onSaved }) {
+  const [saving, setSaving] = useState(false)
+  const on = student.reminder_emails !== false
+
+  async function toggle() {
+    setSaving(true)
+    try {
+      const { data } = await api.patch('/me/profile', { reminder_emails: !on })
+      onSaved(data)
+      toast.success(data.reminder_emails ? 'Reminder emails turned on' : 'Reminder emails turned off')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Reminders</CardTitle>
+        <CardDescription>
+          If a request has been waiting on you for more than 2 days (a correction, a payment or a pick-up), or is running
+          more than 2 days late, we’ll remind you.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p id="reminder-emails-label" className="text-sm font-medium text-fg">Email me reminders</p>
+            <p className="text-[13px] text-muted">
+              Sent to your university email{student.personal_email_verified ? ' and personal email' : ''}. Reminders always
+              appear in the portal.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={on}
+            aria-labelledby="reminder-emails-label"
+            disabled={saving}
+            onClick={toggle}
+            className={cn(
+              'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-60',
+              on ? 'bg-primary' : 'bg-border-strong',
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={cn('inline-block size-5 rounded-full bg-white shadow transition-transform', on ? 'translate-x-6' : 'translate-x-1')}
+            />
+          </button>
+        </div>
       </CardContent>
     </Card>
   )

@@ -58,6 +58,7 @@ def client(engine, db, tmp_path, monkeypatch):
             s.close()
 
     monkeypatch.setattr(settings, "upload_dir", tmp_path / "uploads")
+    monkeypatch.setattr(settings, "reminders_enabled", False)  # tests call run_reminders directly
     deps.login_limiter.hits.clear()
     deps.reset_limiter.hits.clear()
     documents.verify_limiter.hits.clear()

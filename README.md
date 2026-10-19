@@ -89,6 +89,13 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
   university mailbox). It receives updates only after they confirm it through a one-time link valid for 24
   hours; changing it needs a new confirmation. Without `SMTP_HOST`, emails go to the backend log; Docker
   Compose routes them to Mailpit.
+- **Reminders:** checked every hour (and on demand from admin Settings). A request waiting on the student for
+  more than 2 days (correction, payment with no receipt uploaded, or pick-up) gets an "Action needed" reminder,
+  repeated every 2 days, at most 3 per step. A request more than 2 days past its estimated release date while the
+  Registrar holds it gets one "taking longer than expected" notice. Reminders always appear in-app; they're
+  emailed to the university and confirmed personal address unless the student turns reminder emails off on their
+  Profile. Each status change starts the clock over. With several backend instances, set `REMINDERS_ENABLED=false`
+  on all but one, or run `python -m app.services.reminders` from cron instead.
 - **Overdue:** a request is overdue when its estimated release date has passed while the Registrar holds it
   (submitted, under review, resubmitted, payment verified, processing). Time spent waiting on the student
   doesn't count.

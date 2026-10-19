@@ -16,6 +16,7 @@ import {
   useDeleteAnnouncement,
   useDeleteHoliday,
   useHolidays,
+  useRunReminders,
   useSaveAnnouncement,
   useSaveSettings,
 } from '@/features/admin/api'
@@ -33,7 +34,10 @@ export function SettingsPage() {
       <OfficeSettings />
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <Holidays />
-        <Announcements />
+        <div className="space-y-6">
+          <Announcements />
+          <Reminders />
+        </div>
       </div>
     </div>
   )
@@ -200,6 +204,46 @@ function Holidays() {
           </ul>
         )}
         {past.length > 0 && <p className="text-xs text-subtle">{past.length} past closed days kept for history.</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------- reminders ----------
+
+function Reminders() {
+  const run = useRunReminders()
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Reminders</CardTitle>
+        <CardDescription>
+          Checked automatically every hour. Students get an “Action needed” reminder when a request has waited on them
+          for more than 2 days (correction, payment or pick-up; at most 3 per step, every 2 days), and a one-time notice
+          when the Registrar is more than 2 days past the estimated release date. Emails go to their university and
+          confirmed personal address unless they turned reminder emails off.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button
+          variant="secondary"
+          loading={run.isPending}
+          onClick={async () => {
+            try {
+              const r = await run.mutateAsync()
+              const total = r.action_reminders + r.late_notices
+              toast.success(
+                total
+                  ? `Sent ${r.action_reminders} action-needed reminder${r.action_reminders === 1 ? '' : 's'} and ${r.late_notices} running-late notice${r.late_notices === 1 ? '' : 's'}.`
+                  : 'Nothing is due right now.',
+              )
+            } catch (err) {
+              toast.error(errorMessage(err))
+            }
+          }}
+        >
+          Send due reminders now
+        </Button>
       </CardContent>
     </Card>
   )

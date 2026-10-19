@@ -238,6 +238,20 @@ def delete_announcement(announcement_id: int, http: HttpRequest, user: User = De
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+# ---------- reminders ----------
+
+@router.post("/reminders/run")
+def run_reminders_now(http: HttpRequest, user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Sends any reminders that are due right now (they also go out automatically every hour)."""
+    from app.services.reminders import run_reminders
+
+    result = run_reminders(db)
+    audit(db, "reminders_run", actor=user, entity_type="reminders", http=http,
+          meta={"action_reminders": result.action_reminders, "late_notices": result.late_notices})
+    db.commit()
+    return {"action_reminders": result.action_reminders, "late_notices": result.late_notices}
+
+
 # ---------- users ----------
 
 def _row(u: User) -> UserRow:

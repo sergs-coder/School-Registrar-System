@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = False
     mail_from: str = "TUA Registrar <registrar@tua.edu.ph>"
 
+    # Background check for stalled requests (see services/reminders.py). With several backend
+    # instances, enable it on one only, or run `python -m app.services.reminders` from cron instead.
+    reminders_enabled: bool = True
+    reminder_interval_minutes: int = 60
+
     @property
     def is_sqlite(self) -> bool:
         return self.database_url.startswith("sqlite")

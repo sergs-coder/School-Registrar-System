@@ -31,6 +31,7 @@ class StudentProfileOut(ORM):
     standing: Standing
     personal_email: str | None = None
     personal_email_verified: bool = False
+    reminder_emails: bool = True
 
 
 class PersonalEmailIn(BaseModel):
@@ -94,3 +95,4 @@ class ChangePasswordIn(BaseModel):
 class ProfileUpdate(BaseModel):
     contact_no: str | None = Field(default=None, pattern=r"^(\+63|0)9\d{9}$", description="PH mobile, e.g. 09171234567")
     mailing_address: str | None = Field(default=None, max_length=500)
+    reminder_emails: bool | None = Field(default=None, description="Email reminders when a request needs action or runs late")
