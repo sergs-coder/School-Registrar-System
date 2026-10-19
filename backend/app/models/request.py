@@ -46,6 +46,10 @@ class Request(TimestampMixin, Base):
     assigned_to_id: Mapped[int | None] = mapped_column(ForeignKey("staff.id"))
     submitted_at: Mapped[datetime | None] = mapped_column(index=True)
     completed_at: Mapped[datetime | None]
+    # Reminder bookkeeping; reset on every status change (see workflow.transition).
+    reminder_count: Mapped[int] = mapped_column(default=0, server_default="0")
+    last_reminded_at: Mapped[datetime | None]
+    delay_notified_at: Mapped[datetime | None]
     version: Mapped[int] = mapped_column(default=1)
 
     student: Mapped[Student] = relationship()

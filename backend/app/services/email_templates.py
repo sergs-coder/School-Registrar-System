@@ -31,6 +31,7 @@ class UpdateEmail:
     steps: list[TrackerStep] = field(default_factory=list)
     next_step: str | None = None
     estimated_release: str | None = None  # already formatted for display
+    urgent: bool = False  # reminders: shows an "Action needed" banner
 
 
 def request_link(reference_no: str) -> str:
@@ -39,7 +40,7 @@ def request_link(reference_no: str) -> str:
 
 def render_text(e: UpdateEmail) -> str:
     marks = {"done": "[x]", "current": "[>]", "todo": "[ ]", "stopped": "[!]"}
-    lines = ["Hello,", "", e.body, ""]
+    lines = ["Hello,", ""] + (["ACTION NEEDED", ""] if e.urgent else []) + [e.body, ""]
     if e.next_step:
         lines += [e.next_step, ""]
     if e.steps:
@@ -106,6 +107,7 @@ def render_html(e: UpdateEmail) -> str:
     <div style="color:#d9e3f8;font-size:12px;">Office of the University Registrar</div>
   </td></tr>
   <tr><td style="padding:24px;">
+    {f'<div style="display:inline-block;margin-bottom:10px;padding:4px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;">ACTION NEEDED</div>' if e.urgent else ""}
     <div style="font-size:12px;color:{MUTED};font-family:Consolas,monospace;">{escape(e.reference_no)} &middot; {escape(e.document_name)}</div>
     <h1 style="margin:6px 0 0;font-size:20px;line-height:28px;color:{INK};">{escape(e.headline)}</h1>
     <p style="margin:12px 0 0;font-size:15px;line-height:22px;color:{INK};">{escape(e.body)}</p>

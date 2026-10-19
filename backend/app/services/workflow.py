@@ -102,6 +102,10 @@ def transition(
 
     now = at or utcnow()
     req.status = to_status
+    # A new step starts the reminder clock over.
+    req.reminder_count = 0
+    req.last_reminded_at = None
+    req.delay_notified_at = None
     if to_status == S.submitted:
         req.submitted_at = now
     if to_status in (S.submitted, S.processing):

@@ -26,7 +26,7 @@ export function NotificationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Notifications"
-        description="Updates on your requests. We also email you about the important ones."
+        description="Updates on your requests. We email you each one too, plus reminders when something needs your action."
         actions={
           unread > 0 && (
             <Button variant="secondary" onClick={() => markAll.mutate()} loading={markAll.isPending}>

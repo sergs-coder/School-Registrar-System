@@ -31,6 +31,8 @@ def update_profile(
 ):
     # Name, student number and program come from the Registrar's records and are read-only here.
     changes = body.model_dump(exclude_unset=True)
+    if changes.get("reminder_emails", True) is None:
+        changes.pop("reminder_emails")  # on/off only; null means "leave as is"
     for key, value in changes.items():
         setattr(user.student, key, value)
     audit(db, "profile_updated", actor=user, entity_type="student", entity_id=user.student.id, http=http,

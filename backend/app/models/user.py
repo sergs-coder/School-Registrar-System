@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Enum, ForeignKey, String
+from sqlalchemy import Enum, ForeignKey, String, true as sa_true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -68,6 +68,8 @@ class Student(TimestampMixin, Base):
     personal_email_verified_at: Mapped[datetime | None]
     personal_email_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
     personal_email_token_expires_at: Mapped[datetime | None]
+    # Reminder emails (action needed / running late). In-app reminders are always shown.
+    reminder_emails: Mapped[bool] = mapped_column(default=True, server_default=sa_true())
 
     user: Mapped[User] = relationship(back_populates="student")
     program: Mapped[Program | None] = relationship()

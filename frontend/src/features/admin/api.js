@@ -68,6 +68,9 @@ export const useSaveAnnouncement = () =>
 export const useDeleteAnnouncement = () =>
   useAdminMutation(async (id) => api.delete(`/admin/announcements/${id}`), [adminKeys.announcements, ['announcements']])
 
+export const useRunReminders = () =>
+  useAdminMutation(async () => (await api.post('/admin/reminders/run')).data, [['admin', 'audit']])
+
 // ---------- users ----------
 
 export const useUsers = (p) =>
