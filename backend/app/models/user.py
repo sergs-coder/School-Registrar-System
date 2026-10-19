@@ -62,9 +62,19 @@ class Student(TimestampMixin, Base):
     mailing_address: Mapped[str | None] = mapped_column(String(500))
     birthdate: Mapped[date | None]
     standing: Mapped[Standing] = enum_col(Standing, default=Standing.enrolled)
+    # Optional personal address for request updates (graduates often lose their university mailbox).
+    # Used only once verified through the emailed link; the token is stored hashed.
+    personal_email: Mapped[str | None] = mapped_column(String(255))
+    personal_email_verified_at: Mapped[datetime | None]
+    personal_email_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    personal_email_token_expires_at: Mapped[datetime | None]
 
     user: Mapped[User] = relationship(back_populates="student")
     program: Mapped[Program | None] = relationship()
+
+    @property
+    def personal_email_verified(self) -> bool:
+        return self.personal_email is not None and self.personal_email_verified_at is not None
 
     @property
     def full_name(self) -> str:

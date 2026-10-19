@@ -132,5 +132,5 @@ def transition(
     from app.services.notifications import notify_status_change
 
     if not is_internal:
-        notify_status_change(db, req, to_status, actor, remarks, at=now)
+        notify_status_change(db, req, to_status, actor, remarks, at=now, from_status=from_status)
     return entry

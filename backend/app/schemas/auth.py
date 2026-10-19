@@ -29,6 +29,22 @@ class StudentProfileOut(ORM):
     contact_no: str | None
     mailing_address: str | None
     standing: Standing
+    personal_email: str | None = None
+    personal_email_verified: bool = False
+
+
+class PersonalEmailIn(BaseModel):
+    email: EmailStr | None = Field(description="New personal email, or null to remove it")
+
+
+class PersonalEmailOut(BaseModel):
+    profile: StudentProfileOut
+    # Only in development, where the confirmation email goes to the log instead of an inbox.
+    verify_link: str | None = None
+
+
+class VerifyEmailIn(BaseModel):
+    token: str = Field(min_length=10, max_length=200)
 
 
 class StaffOut(ORM):
