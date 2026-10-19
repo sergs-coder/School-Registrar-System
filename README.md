@@ -2,6 +2,7 @@
 
 Online requests for academic records and registrar forms at Trinity University of Asia.
 Students submit and track requests; Registrar staff process them from a back-office dashboard.
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for what changed in each update.
 
 ```
 /backend   FastAPI · SQLAlchemy 2 · Alembic · PostgreSQL (SQLite for local dev) · JWT · pytest
@@ -111,6 +112,9 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
 - **QR verification:** each slip and e-document has a random 16-character code (`issued_documents`). Anyone can
   check it at `/verify/<code>` without logging in (rate-limited). The page shows only what is printed on the
   document, with the student number masked.
+- **Dashboard:** compact stat tiles and a submissions chart that switches between daily, weekly, monthly and
+  yearly counts (Manila time, weeks start Monday; the choice is remembered). Empty periods show as zero, and
+  a chart that fails to load shows a retry message.
 - **Admin back office** (admins only, under `/registrar/admin`):
   - **Document types:** add, edit or hide types, with their fees, extra questions and required files. Submitted
     requests keep the terms in their snapshot; drafts follow the catalog.
