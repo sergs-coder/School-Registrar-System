@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input, Textarea } from '@/components/ui/input'
 import { passwordRule } from '@/features/auth/pages/PasswordPages'
+import { PersonalEmailCard } from '@/features/profile/components/PersonalEmailCard'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/axios'
 import { applyFieldErrors, errorMessage } from '@/lib/errors'
@@ -68,6 +69,7 @@ export function ProfilePage() {
         </Card>
 
         <div className="space-y-6">
+          <PersonalEmailCard student={s} universityEmail={user.email} onSaved={(student) => setUser({ ...user, student })} />
           <ContactCard student={s} onSaved={(student) => setUser({ ...user, student })} />
           <AppearanceCard />
         </div>

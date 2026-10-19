@@ -8,8 +8,9 @@ from app.core.config import settings
 logger = logging.getLogger("srm.email")
 
 
-def send_email(to: str, subject: str, text: str) -> bool:
-    """Returns True only when the message was handed to an SMTP server."""
+def send_email(to: str, subject: str, text: str, html: str | None = None) -> bool:
+    """Returns True only when the message was handed to an SMTP server. `html`, if given, is sent as an
+    alternative part; clients that can't show HTML fall back to `text`."""
     if not settings.smtp_host:
         logger.info("EMAIL (not sent, SMTP_HOST empty) to=%s subject=%s\n%s", to, subject, text)
         return False
@@ -18,6 +19,8 @@ def send_email(to: str, subject: str, text: str) -> bool:
     msg["To"] = to
     msg["Subject"] = subject
     msg.set_content(text)
+    if html:
+        msg.add_alternative(html, subtype="html")
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
             if settings.smtp_use_tls:

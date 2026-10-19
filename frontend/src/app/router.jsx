@@ -20,6 +20,7 @@ const pages = {
   privacy: page(() => import('@/pages/PublicPages'), 'PrivacyPage'),
   notFound: page(() => import('@/pages/PublicPages'), 'NotFoundPage'),
   verify: page(() => import('@/features/verify/VerifyPage'), 'VerifyPage'),
+  verifyEmail: page(() => import('@/features/profile/pages/VerifyEmailPage'), 'VerifyEmailPage'),
   home: page(() => import('@/features/home/pages/HomePage'), 'HomePage'),
   myRequests: page(() => import('@/features/requests/pages/MyRequestsPage'), 'MyRequestsPage'),
   catalog: page(() => import('@/features/catalog/pages/CatalogPage'), 'CatalogPage'),
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
       { path: '/privacy', lazy: pages.privacy },
       { path: '/verify', lazy: pages.verify },
       { path: '/verify/:code', lazy: pages.verify },
+      { path: '/verify-email', lazy: pages.verifyEmail },
       {
         element: <RequireAuth roles={['student']} />,
         children: [

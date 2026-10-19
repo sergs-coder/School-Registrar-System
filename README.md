@@ -80,10 +80,15 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
   (other reference numbers return 404); uploads are checked by their actual file contents (magic bytes),
   limited to 5 MB, encrypted at rest (Fernet), and served only through an authorized endpoint; logins,
   staff record views and downloads are written to `audit_logs`.
-- **Notifications:** every student-visible status change creates an in-app notification. Important ones
-  (submitted, needs correction, approved, processing, ready, shipped, released, rejected) are also emailed
-  after the response is sent. Without `SMTP_HOST`, emails go to the backend log; Docker Compose routes them
-  to Mailpit.
+- **Notifications:** every status change a student can see creates an in-app notification and a tracking
+  email. The email has a progress tracker (Submitted → Review → Payment → Processing → Ready → Released), the
+  next step, the estimated release date and a "Track your request" link. Approvals and releases say so plainly
+  ("Approved", "Released"). Payment rejections and new e-documents are emailed too. Emails go out after the
+  response is sent.
+- **Personal email:** students can add a personal address on their Profile page (graduates often lose their
+  university mailbox). It receives updates only after they confirm it through a one-time link valid for 24
+  hours; changing it needs a new confirmation. Without `SMTP_HOST`, emails go to the backend log; Docker
+  Compose routes them to Mailpit.
 - **Overdue:** a request is overdue when its estimated release date has passed while the Registrar holds it
   (submitted, under review, resubmitted, payment verified, processing). Time spent waiting on the student
   doesn't count.

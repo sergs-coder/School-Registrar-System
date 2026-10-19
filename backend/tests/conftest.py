@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.api.v1 import documents
+from app.api.v1 import documents, me
 from app.core import deps
 from app.core.config import settings
 from app.core.security import hash_password, utcnow
@@ -61,6 +61,7 @@ def client(engine, db, tmp_path, monkeypatch):
     deps.login_limiter.hits.clear()
     deps.reset_limiter.hits.clear()
     documents.verify_limiter.hits.clear()
+    me.personal_email_limiter.hits.clear()
     app.dependency_overrides[get_db] = _get_db
     with TestClient(app) as c:
         yield c

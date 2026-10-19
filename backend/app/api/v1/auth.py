@@ -16,8 +16,16 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
-from app.models import PasswordResetToken, RefreshToken, User
-from app.schemas.auth import ChangePasswordIn, ForgotPasswordIn, LoginIn, MeOut, ResetPasswordIn, TokenOut
+from app.models import PasswordResetToken, RefreshToken, Student, User
+from app.schemas.auth import (
+    ChangePasswordIn,
+    ForgotPasswordIn,
+    LoginIn,
+    MeOut,
+    ResetPasswordIn,
+    TokenOut,
+    VerifyEmailIn,
+)
 from app.schemas.common import Message
 from app.services.audit import audit
 from app.services.email import send_email
@@ -226,3 +234,21 @@ def reset_password(body: ResetPasswordIn, http: Request, db: Session = Depends(g
     audit(db, "password_reset", actor=user, entity_type="user", entity_id=user.id, http=http)
     db.commit()
     return Message(message="Password updated. You can now sign in.")
+
+
+@router.post("/verify-personal-email", response_model=Message, dependencies=[Depends(reset_limiter)])
+def verify_personal_email(body: VerifyEmailIn, http: Request, db: Session = Depends(get_db)):
+    """Public on purpose: students often open the link on a phone where they aren't signed in.
+    The token alone proves they control the inbox."""
+    student = db.execute(
+        select(Student).where(Student.personal_email_token_hash == hash_token(body.token))
+    ).scalar_one_or_none()
+    now = utcnow()
+    if student is None or student.personal_email is None or student.personal_email_token_expires_at < now:
+        raise AppError("INVALID_VERIFY_TOKEN", "This link is invalid or has expired. Request a new one from your profile.", 400)
+    student.personal_email_verified_at = now
+    student.personal_email_token_hash = None
+    student.personal_email_token_expires_at = None
+    audit(db, "personal_email_verified", actor=student.user, entity_type="student", entity_id=student.id, http=http)
+    db.commit()
+    return Message(message=f"Request updates will also go to {student.personal_email}.")
