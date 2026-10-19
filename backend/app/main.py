@@ -2,8 +2,9 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -79,3 +80,17 @@ app.include_router(api_router, prefix=settings.api_prefix)
 @app.get(f"{settings.api_prefix}/health", tags=["health"])
 def health():
     return {"status": "ok"}
+
+
+if settings.static_dir and settings.static_dir.is_dir():
+    static_root = settings.static_dir.resolve()
+
+    # Registered last so API routes win. Unknown non-API paths get index.html for client-side routing.
+    @app.get("/{path:path}", include_in_schema=False)
+    def frontend(path: str):
+        if path.startswith(settings.api_prefix.strip("/") + "/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        file = (static_root / path).resolve()
+        if path and file.is_file() and file.is_relative_to(static_root):
+            return FileResponse(file)
+        return FileResponse(static_root / "index.html")

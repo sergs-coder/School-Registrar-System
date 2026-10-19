@@ -1,0 +1,17 @@
+# Render Blueprint for a free public demo (https://render.com/docs/blueprint-spec).
+# One web service serves the API and the built frontend. Data resets to the demo seed on every start.
+services:
+  - type: web
+    name: tua-student-request-portal
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"

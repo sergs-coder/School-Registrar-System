@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
     frontend_url: str = "http://localhost:5173"
 
+    # Built frontend (frontend/dist) to serve from the API's origin, for single-service deploys.
+    # Unset in development, where the Vite dev server serves the frontend.
+    static_dir: Path | None = None
+
     upload_dir: Path = BASE_DIR / "storage"
     # Fernet key (urlsafe base64, 32 bytes). Derived from secret_key when empty (dev only).
     file_encryption_key: str = ""

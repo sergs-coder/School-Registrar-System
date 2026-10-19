@@ -11,7 +11,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import BASE_DIR, settings
 from app.core.security import hash_password
 from app.core.storage import get_storage
 from app.db.session import SessionLocal
@@ -88,8 +88,8 @@ def reset_database() -> None:
     with engine.begin() as conn:
         conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
     shutil.rmtree(settings.upload_dir, ignore_errors=True)
-    cfg = Config(str(settings.upload_dir.parent / "alembic.ini"))
-    cfg.set_main_option("script_location", str(settings.upload_dir.parent / "alembic"))
+    cfg = Config(str(BASE_DIR / "alembic.ini"))
+    cfg.set_main_option("script_location", str(BASE_DIR / "alembic"))
     command.upgrade(cfg, "head")
 
 

@@ -42,6 +42,16 @@ docker compose exec backend python -m app.seed.seed --reset
 Frontend at http://localhost:5173, API docs at http://localhost:8000/api/v1/docs,
 and dev email inbox (Mailpit) at http://localhost:8025.
 
+## Free public demo (Render)
+
+[`render.yaml`](render.yaml) deploys the whole portal as one free Render web service: the root
+[`Dockerfile`](Dockerfile) builds the frontend and the API serves it from the same origin. On Render, click
+**New → Blueprint**, pick this repository and click **Apply**.
+
+This setup is for demos only: every start loads fresh demo data into SQLite, so changes and uploads are lost
+when the service restarts or sleeps (free services sleep after 15 minutes idle; the first visit after that
+takes about a minute). Emails are written to the service log instead of being sent.
+
 ## Demo accounts
 
 | Role    | Login                                         | Password       |

@@ -2,6 +2,13 @@
 
 TUA Student Request Portal (SRM System). Newest changes first.
 
+## 2026-10-20 — Free public demo
+
+- The portal can be deployed as one free Render web service (`render.yaml` and a root `Dockerfile`). The API
+  serves the built website from the same address. Demo data reloads on every start.
+- **Fix:** `python -m app.seed.seed --reset` no longer fails when uploads are stored outside the backend
+  folder (as in Docker Compose).
+
 ## 2026-10-19 — Reminders for stalled requests ([#5](https://github.com/sergs-coder/School-Registrar-System/pull/5))
 
 - **Action needed reminders.** When a request has been waiting on the student for more than 2 days
