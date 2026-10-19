@@ -35,6 +35,7 @@ from app.schemas.requests import (
     RequestDetail,
     RequestListItem,
     RequestUpdate,
+    appointment_out,
 )
 from app.services.audit import audit
 from app.services.business_days import estimate_release_date, manila_date
@@ -66,6 +67,7 @@ def _load(db: Session, ref: str, user: User) -> Request:
             selectinload(Request.document_type),
             selectinload(Request.payments).selectinload(Payment.proof),
             selectinload(Request.issued_documents).selectinload(IssuedDocument.attachment),
+            selectinload(Request.pickup_appointment),
         )
     )
     if user.role == Role.student:
@@ -167,6 +169,8 @@ def _detail(req: Request, user: User) -> RequestDetail:
         actions.append("pay")
     if req.status == S.ready_for_pickup and req.delivery_method == DeliveryMethod.pickup:
         actions.append("pickup_slip")
+        if is_student:
+            actions.append("book_pickup")
     latest = next((h.remarks for h in reversed(req.history) if h.remarks and not h.is_internal), None)
     base = RequestListItem.model_validate(req).model_dump()
     return RequestDetail(
@@ -180,6 +184,7 @@ def _detail(req: Request, user: User) -> RequestDetail:
                      and not (is_student and a.kind == AttachmentKind.release_document)],
         payments=[_payment_out(p, is_student) for p in req.payments],
         e_documents=_e_documents(req, is_student),
+        pickup_appointment=appointment_out(req.pickup_appointment),
         history=history,
         allowed_actions=actions,
         latest_remarks=latest,

@@ -12,9 +12,12 @@ from app.core.security import utcnow
 from app.db.session import get_db
 from app.models import (
     TERMINAL_STATUSES,
+    AccountRequest,
+    AccountRequestStatus,
     DocumentType,
     Payment,
     PaymentStatus,
+    PickupAppointment,
     Program,
     Request,
     RequestAttachment,
@@ -179,9 +182,17 @@ def dashboard(user: User = Depends(require_staff), db: Session = Depends(get_db)
         )
     )
     payments_to_verify = db.scalar(select(func.count()).select_from(Request).where(PAYMENT_TO_VERIFY))
+    account_requests_pending = db.scalar(
+        select(func.count()).select_from(AccountRequest).where(AccountRequest.status == AccountRequestStatus.pending)
+    )
+    pickups_booked_today = db.scalar(
+        select(func.count()).select_from(PickupAppointment).where(PickupAppointment.date == today)
+    )
     return Dashboard(
         counts=counts,
         payments_to_verify=payments_to_verify,
+        account_requests_pending=account_requests_pending,
+        pickups_booked_today=pickups_booked_today,
         active_total=sum(by_status.get(s, 0) for s in OPEN),
         overdue_total=overdue_total,
         assigned_to_me=assigned_to_me,

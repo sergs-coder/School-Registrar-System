@@ -158,6 +158,11 @@ function PanelBody({ reference }) {
                     'Pick-up'
                   ),
               },
+              r.delivery_method === 'pickup' &&
+                r.status === 'ready_for_pickup' && {
+                  label: 'Pick-up time',
+                  value: r.pickup_appointment?.label ?? 'Not booked yet',
+                },
             ]}
           />
         </Section>

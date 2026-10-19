@@ -13,6 +13,12 @@ class Standing(str, Enum):
     inactive = "inactive"
 
 
+class AccountRequestStatus(str, Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
 class DocCategory(str, Enum):
     record = "record"
     certificate = "certificate"

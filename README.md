@@ -61,7 +61,8 @@ takes about a minute). Emails are written to the service log instead of being se
 | Admin   | `admin@tua.edu.ph`                            | `Admin@2026`   |
 
 Juan has one request in every status and sees the Data Privacy consent notice on first login.
-The seed adds 24 more students (password `Student@2026`), 11 document types, holidays, and about 80 requests.
+The seed adds 24 more students (password `Student@2026`), 11 document types, holidays, about 80 requests,
+a few booked pick-up times for today and two alumni access requests waiting for review.
 To restart the demo from scratch, run `python -m app.seed.seed --reset` again.
 
 ## Tests
@@ -100,6 +101,12 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
   university mailbox). It receives updates only after they confirm it through a one-time link valid for 24
   hours; changing it needs a new confirmation. Without `SMTP_HOST`, emails go to the backend log; Docker
   Compose routes them to Mailpit.
+- **Alumni and former students:** anyone without an account (or who lost their university mailbox) can ask for
+  access at `/alumni-access` with their student number, name, birth date, program, an email address and a photo
+  of a valid ID. Staff review it under **Alumni access**, which compares it with the student record on file.
+  Approving links it to that record (or creates one) and emails a 72-hour set-password link. The address becomes
+  the student's confirmed personal email, so they can sign in and reset their password with it.
+- **Approval emails** state the amount due and the payment instructions.
 - **Reminders:** checked every hour (and on demand from admin Settings). A request waiting on the student for
   more than 2 days (correction, payment with no receipt uploaded, or pick-up) gets an "Action needed" reminder,
   repeated every 2 days, at most 3 per step. A request more than 2 days past its estimated release date while the
@@ -119,6 +126,15 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
   can download it once the request is released. The clean file is never served to students: every download is
   stamped on each page with the holder's name, reference number and a QR code, and locked against editing.
   Replacing or revoking a copy invalidates its code.
+- **Courier addresses:** for Metro Manila, students pick the city or municipality, then its barangay
+  ([`backend/app/data/metro_manila.json`](backend/app/data/metro_manila.json), from the PSGC, with the EMBO
+  barangays under Taguig). The server rejects a barangay that isn't in the chosen city. Addresses outside
+  Metro Manila stay free text. Every courier address can include a landmark for the courier.
+- **Pick-up appointments:** once a pick-up request is Ready for Pick-up, the student books a one-hour slot from
+  the Registrar's open hours (set by admins: hours per weekday, students per slot, how many days ahead) and can
+  change or cancel it. Closed days have no slots. Each booking holds one numbered seat in its slot, and a
+  unique constraint makes sure two students can't take the last seat at once. The time is printed on the pick-up
+  slip, shown on the staff request panel, and listed day by day on the dashboard.
 - **QR verification:** each slip and e-document has a random 16-character code (`issued_documents`). Anyone can
   check it at `/verify/<code>` without logging in (rate-limited). The page shows only what is printed on the
   document, with the student number masked.
@@ -128,8 +144,8 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
 - **Admin back office** (admins only, under `/registrar/admin`):
   - **Document types:** add, edit or hide types, with their fees, extra questions and required files. Submitted
     requests keep the terms in their snapshot; drafts follow the catalog.
-  - **Settings:** office details, courier fees, payment instructions, closed days (which push back estimated
-    release dates) and announcements on the student home page.
+  - **Settings:** office details, courier fees, payment instructions, pick-up hours, closed days (which push
+    back estimated release dates and close pick-up slots) and announcements on the student home page.
   - **Users:** add staff and admins, who set their own password through an emailed 72-hour link (shown on screen
     in development). Admins can also deactivate (which signs the person out everywhere), unlock or resend a
     password link. Admins can't lock themselves out or remove the last active admin.

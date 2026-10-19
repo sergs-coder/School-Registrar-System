@@ -12,10 +12,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import BASE_DIR, settings
-from app.core.security import hash_password
+from app.core.security import hash_password, utcnow
 from app.core.storage import get_storage
 from app.db.session import SessionLocal
 from app.models import (
+    AccountRequest,
     Announcement,
     AttachmentKind,
     DeliveryMethod,
@@ -39,9 +40,11 @@ from app.models import (
     User,
 )
 from app.seed import data
+from app.services import pickups
 from app.services.app_settings import DEFAULTS
 from app.services.documents import new_code
 from app.services.fees import compute_fees, make_snapshot
+from app.services.locations import metro_manila
 from app.services.reference_no import next_reference_no
 from app.services.uploads import sha256
 from app.services.workflow import approval_target, transition
@@ -284,7 +287,10 @@ def make_request(db: Session, student: User, doc: DocumentType, target: RequestS
         city, province, zipc, region = rng.choice(data.CITIES)
         req.delivery_address = {"recipient": student.student.full_name, "contact_no": student.student.contact_no,
                                 "line1": "123 Mabini St., Brgy. San Roque", "city": city, "province": province,
-                                "zip": zipc, "region": region}
+                                "zip": zipc, "region": region, "landmark": "Beside the barangay hall, green gate"}
+        if region == "metro":
+            barangays = next(c["barangays"] for c in metro_manila() if c["name"] == city)
+            req.delivery_address |= {"line1": "123 Mabini St.", "barangay": rng.choice(barangays)}
     req.document_type = doc
     req.student = student.student
     req.fee_breakdown, req.fee_total = compute_fees(db, req.doc_type_snapshot, req.copies, req.delivery_method,
@@ -360,6 +366,36 @@ def seed_requests(db: Session, students: list[User], staff: list[User]) -> int:
     return count
 
 
+def seed_pickups_and_access(db: Session, students: list[User]) -> None:
+    """Pick-up times for some ready requests (not the demo student's, so the demo can book one) and a
+    couple of alumni access requests waiting for review."""
+    db.flush()
+    ready = db.execute(
+        select(Request).where(Request.status == S.ready_for_pickup, Request.delivery_method == DeliveryMethod.pickup,
+                              Request.student_id != students[0].student.id).order_by(Request.id)
+    ).scalars().all()
+    slots = [(d.date, s.time) for d in pickups.open_days(db, utcnow()) for s in d.slots][:12]
+    for req, (day, time) in zip(ready[: len(ready) * 2 // 3], (slots[i % len(slots)] for i in range(len(ready)))):
+        pickups.book(db, req, day, time, utcnow())
+
+    graduate = next(u.student for u in students[1:] if u.student.standing == Standing.graduated)
+    storage = get_storage()
+    for st_no, first, middle, last, birthdate, email, program, year in (
+        (graduate.student_no, graduate.first_name, graduate.middle_name, graduate.last_name, graduate.birthdate,
+         f"{graduate.first_name.lower()}.{graduate.last_name.lower()}@gmail.com".replace(" ", ""),
+         graduate.program.code if graduate.program else "BSIT", 2021),
+        ("2009-04512", "Ramon", "Cruz", "Villanueva", date(1990, 3, 8), "ramon.villanueva@yahoo.com",
+         "BS Accountancy", 2013),
+    ):
+        db.add(AccountRequest(
+            student_no=st_no, first_name=first, middle_name=middle, last_name=last,
+            birthdate=birthdate or date(1999, 1, 1), email=email, contact_no="09171234567", program=program,
+            last_year_attended=year, standing=Standing.graduated, id_filename="valid-id.pdf",
+            id_storage_key=storage.put(sample_pdf("Valid ID")), id_mime_type="application/pdf",
+            created_at=NOW - timedelta(hours=rng.randint(2, 30)),
+        ))
+
+
 def run(reset: bool) -> None:
     if reset:
         reset_database()
@@ -376,6 +412,7 @@ def run(reset: bool) -> None:
             created_by_id=admin.id,
         ))
         n = seed_requests(db, students, staff)
+        seed_pickups_and_access(db, students)
         db.commit()
         print(f"Seeded {len(students)} students, {len(staff)} staff/admin, {n} requests.")
         print("Demo logins:")

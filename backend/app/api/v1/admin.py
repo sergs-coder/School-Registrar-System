@@ -115,7 +115,9 @@ def update_document_type(doc_id: int, body: DocumentTypeIn, http: HttpRequest, u
 
 # ---------- settings ----------
 
-SETTING_KEYS = ("courier_fee_metro", "courier_fee_provincial", "registrar_contact", "payment_instructions")
+SETTING_KEYS = (
+    "courier_fee_metro", "courier_fee_provincial", "registrar_contact", "payment_instructions", "pickup_schedule",
+)
 
 
 def _settings_out(db: Session) -> SettingsIO:

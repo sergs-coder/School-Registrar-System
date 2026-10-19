@@ -120,6 +120,8 @@ class Dashboard(BaseModel):
     submitted_today: int
     completed_this_week: int
     payments_to_verify: int
+    account_requests_pending: int = 0
+    pickups_booked_today: int = 0
     daily_submissions: list[DayCount]
     overdue: list[QueueItem]
     pickups: list[QueueItem]

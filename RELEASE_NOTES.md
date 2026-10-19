@@ -2,6 +2,24 @@
 
 TUA Student Request Portal (SRM System). Newest changes first.
 
+## 2026-10-20 — Address picker, pick-up appointments and alumni access
+
+- **Courier addresses in Metro Manila:** choose the city or municipality, then its barangay from a list (all
+  1,710 barangays, from the official PSGC list). Every courier address now has an optional **Landmark** field
+  to help the courier find the place.
+- **Pick-up appointments:** when a document is ready for pick-up, students book a date and one-hour time slot
+  from the Registrar's open hours, so they don't wait long at the window. They can change or cancel it. Each
+  slot takes a set number of students. Staff see each day's appointments on the dashboard and on the request,
+  and the time is printed on the pick-up slip.
+- **Admins** set the pick-up hours for each weekday, how many students each slot takes, and how far ahead
+  students can book (Settings). Closed days have no slots.
+- **Alumni and former students** without an account, or who lost their school email, can request access from
+  the sign-in page with a photo of a valid ID. Staff review requests under **Alumni access**, with a check
+  against the student record on file, then approve (the person gets a set-password link) or reject with a reason.
+- Students can now **sign in and reset their password with their confirmed personal email**.
+- **Approval emails** now state the amount due and how to pay.
+- Includes a database migration.
+
 ## 2026-10-20 — Free public demo
 
 - The portal can be deployed as one free Render web service (`render.yaml` and a root `Dockerfile`). The API

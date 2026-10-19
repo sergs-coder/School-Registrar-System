@@ -77,12 +77,28 @@ def _issue_tokens(db: Session, user: User, response: Response, http: Request) ->
     ), token
 
 
-@router.post("/login", response_model=TokenOut, dependencies=[Depends(login_limiter)])
-def login(body: LoginIn, response: Response, http: Request, db: Session = Depends(get_db)):
-    ident = body.identifier.strip()
+def _by_personal_email(db: Session, email: str) -> Student | None:
+    """Students may also sign in (and reset their password) with a personal email they have verified;
+    alumni often no longer have their university mailbox."""
+    return db.execute(
+        select(Student).where(func.lower(Student.personal_email) == email.lower(),
+                              Student.personal_email_verified_at.is_not(None))
+    ).scalars().first()
+
+
+def _find_account(db: Session, ident: str) -> User | None:
     user = db.execute(
         select(User).where(or_(func.lower(User.email) == ident.lower(), User.student_no == ident))
     ).scalar_one_or_none()
+    if user is None and "@" in ident:
+        student = _by_personal_email(db, ident)
+        user = student.user if student else None
+    return user
+
+
+@router.post("/login", response_model=TokenOut, dependencies=[Depends(login_limiter)])
+def login(body: LoginIn, response: Response, http: Request, db: Session = Depends(get_db)):
+    user = _find_account(db, body.identifier.strip())
     now = utcnow()
     if user is None:
         verify_password(body.password, _DUMMY_HASH)  # equalise timing
@@ -195,6 +211,10 @@ def change_password(
 @router.post("/forgot-password", response_model=Message, dependencies=[Depends(reset_limiter)])
 def forgot_password(body: ForgotPasswordIn, tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = db.execute(select(User).where(func.lower(User.email) == body.email.lower())).scalar_one_or_none()
+    send_to = user.email if user else None
+    if user is None:
+        student = _by_personal_email(db, body.email)
+        user, send_to = (student.user, student.personal_email) if student else (None, None)
     if user and user.is_active:
         raw = new_opaque_token()
         db.add(PasswordResetToken(
@@ -206,7 +226,7 @@ def forgot_password(body: ForgotPasswordIn, tasks: BackgroundTasks, db: Session 
         db.commit()
         link = f"{settings.frontend_url}/reset-password?token={raw}"
         tasks.add_task(
-            send_email, user.email, "Reset your TUA Student Request Portal password",
+            send_email, send_to, "Reset your TUA Student Request Portal password",
             f"Hello,\n\nUse this link to set a new password. It expires in "
             f"{settings.password_reset_expire_minutes} minutes:\n\n{link}\n\n"
             "If you did not ask for this, you can ignore this email.\n\n— Office of the University Registrar",

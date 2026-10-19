@@ -1,8 +1,10 @@
+import datetime as dt
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.models import (
     AttachmentKind,
@@ -15,16 +17,37 @@ from app.models import (
 )
 from app.schemas.catalog import DocumentTypeOut
 from app.schemas.common import ORM
+from app.services.locations import METRO_PROVINCE, is_metro_barangay, is_metro_city
 
 
 class DeliveryAddress(BaseModel):
     recipient: str = Field(min_length=2, max_length=150)
     contact_no: str = Field(pattern=r"^(\+63|0)9\d{9}$")
-    line1: str = Field(min_length=3, max_length=250, description="House no., street, barangay")
+    line1: str = Field(min_length=3, max_length=250,
+                       description="Metro Manila: house no., building, street. Elsewhere: also the barangay.")
+    # Metro Manila only, chosen from the city's barangay list.
+    barangay: str | None = Field(default=None, max_length=100)
     city: str = Field(min_length=2, max_length=100)
-    province: str = Field(min_length=2, max_length=100)
+    province: str = Field(default="", max_length=100, description="Filled in for Metro Manila")
     zip: str = Field(pattern=r"^\d{4}$")
     region: Literal["metro", "provincial"] = "metro"
+    landmark: str | None = Field(default=None, max_length=200, description="Helps the courier find the place")
+
+    @model_validator(mode="after")
+    def check_metro_location(self):
+        self.landmark = (self.landmark or "").strip() or None
+        if self.region == "provincial":
+            self.barangay = None
+            self.province = self.province.strip()
+            if len(self.province) < 2:
+                raise PydanticCustomError("province", "Enter the province.")
+            return self
+        if not is_metro_city(self.city):
+            raise PydanticCustomError("metro_city", "Choose a city or municipality in Metro Manila.")
+        if not self.barangay or not is_metro_barangay(self.city, self.barangay):
+            raise PydanticCustomError("metro_barangay", "Choose a barangay in {city}.", {"city": self.city})
+        self.province = METRO_PROVINCE
+        return self
 
 
 class RequestCreate(BaseModel):
@@ -127,6 +150,48 @@ class VerifyOut(BaseModel):
     revoked_at: datetime | None = None
 
 
+class AppointmentOut(BaseModel):
+    date: dt.date
+    time: str
+    label: str
+
+
+def appointment_out(appt) -> AppointmentOut | None:
+    from app.services.pickups import label
+
+    return AppointmentOut(date=appt.date, time=appt.time, label=label(appt)) if appt else None
+
+
+class AppointmentIn(BaseModel):
+    date: dt.date
+    time: str = Field(pattern=r"^\d{2}:\d{2}$")
+
+
+class PickupSlot(BaseModel):
+    time: str
+    left: int
+
+
+class PickupDay(BaseModel):
+    date: dt.date
+    slots: list[PickupSlot]
+
+
+class PickupOptions(BaseModel):
+    appointment: AppointmentOut | None
+    days: list[PickupDay]
+
+
+class PickupRow(BaseModel):
+    time: str
+    reference_no: str
+    student_name: str
+    student_no: str
+    document_name: str
+    copies: int
+    status: RequestStatus
+
+
 class HistoryOut(BaseModel):
     id: int
     from_status: RequestStatus | None
@@ -160,6 +225,7 @@ class RequestDetail(RequestListItem):
     attachments: list[AttachmentOut]
     payments: list[PaymentOut]
     e_documents: list[IssuedDocumentOut]
+    pickup_appointment: AppointmentOut | None = None
     history: list[HistoryOut]
     allowed_actions: list[str]
     latest_remarks: str | None

@@ -61,6 +61,7 @@ def client(engine, db, tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "reminders_enabled", False)  # tests call run_reminders directly
     deps.login_limiter.hits.clear()
     deps.reset_limiter.hits.clear()
+    deps.account_request_limiter.hits.clear()
     documents.verify_limiter.hits.clear()
     me.personal_email_limiter.hits.clear()
     app.dependency_overrides[get_db] = _get_db

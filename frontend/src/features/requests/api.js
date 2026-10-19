@@ -124,3 +124,31 @@ export const openEDocument = (id) => openFile(`/issued/${id}/download`)
 export async function verifyCode(code) {
   return (await api.get(`/verify/${encodeURIComponent(code)}`)).data
 }
+
+/** Open pick-up times (and the current booking) for a request that is ready for pick-up. */
+export function usePickupSlots(ref, enabled = true) {
+  return useQuery({
+    queryKey: ['requests', 'pickup-slots', ref],
+    queryFn: async () => (await api.get(`/requests/${ref}/pickup-slots`)).data,
+    enabled: Boolean(ref) && enabled,
+  })
+}
+
+function usePickupMutation(ref, fn) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (detail) => {
+      qc.setQueryData(requestKeys.detail(ref), detail)
+      qc.invalidateQueries({ queryKey: ['requests', 'pickup-slots', ref] })
+    },
+    // Someone may have taken the slot; show the fresh picture either way.
+    onError: () => qc.invalidateQueries({ queryKey: ['requests', 'pickup-slots', ref] }),
+  })
+}
+
+export const useBookPickup = (ref) =>
+  usePickupMutation(ref, async ({ date, time }) => (await api.put(`/requests/${ref}/pickup-appointment`, { date, time })).data)
+
+export const useCancelPickup = (ref) =>
+  usePickupMutation(ref, async () => (await api.delete(`/requests/${ref}/pickup-appointment`)).data)

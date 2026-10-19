@@ -40,7 +40,8 @@ WAITING_ON_STUDENT = {
     S.ready_for_pickup: (
         "Your document is waiting for pick-up",
         "Your document is ready and waiting for you at the Registrar's Office.",
-        "Bring a valid ID and your pick-up slip (or reference number) to the Registrar's Office.",
+        "Book a pick-up time on your request page, then bring a valid ID and your pick-up slip (or reference "
+        "number) to the Registrar's Office.",
     ),
 }
 # The Registrar holds the ball in these (same as the staff "overdue" filter).

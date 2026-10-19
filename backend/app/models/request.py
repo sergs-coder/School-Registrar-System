@@ -1,7 +1,8 @@
+import datetime as dt
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, ForeignKey, Numeric, String, Text
+from sqlalchemy import JSON, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -65,6 +66,7 @@ class Request(TimestampMixin, Base):
     issued_documents: Mapped[list["IssuedDocument"]] = relationship(
         back_populates="request", order_by="IssuedDocument.id"
     )
+    pickup_appointment: Mapped["PickupAppointment | None"] = relationship(back_populates="request", uselist=False)
 
     __mapper_args__ = {"version_id_col": version}
 
@@ -142,3 +144,22 @@ class IssuedDocument(Base):
 
     request: Mapped[Request] = relationship(back_populates="issued_documents")
     attachment: Mapped[RequestAttachment | None] = relationship()
+
+
+class PickupAppointment(TimestampMixin, Base):
+    """The pick-up time a student booked. One per request; rescheduling moves it.
+
+    Each slot holds `capacity` seats (see services/pickups.py). The unique (date, time, seat) constraint
+    is what stops two students from taking the last seat at the same moment.
+    """
+
+    __tablename__ = "pickup_appointments"
+    __table_args__ = (UniqueConstraint("date", "time", "seat", name="uq_pickup_appointments_date_time_seat"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("requests.id", ondelete="CASCADE"), unique=True)
+    date: Mapped[dt.date] = mapped_column(index=True)
+    time: Mapped[str] = mapped_column(String(5))  # "HH:MM", Manila time
+    seat: Mapped[int]
+
+    request: Mapped[Request] = relationship(back_populates="pickup_appointment")

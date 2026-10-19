@@ -39,7 +39,8 @@ NEXT_STEPS = {
     S.submitted: "Next: the Registrar's Office reviews your request, usually within one working day.",
     S.needs_correction: "Next: open your request, fix the items noted, and resubmit it.",
     S.awaiting_payment: "Next: pay the fee, then upload a photo of your receipt on your request page.",
-    S.ready_for_pickup: "Next: bring a valid ID and your pick-up slip (or reference number) to the Registrar's Office.",
+    S.ready_for_pickup: ("Next: book a pick-up time on your request page, then bring a valid ID and your pick-up "
+                         "slip (or reference number) to the Registrar's Office."),
 }
 
 OUTBOX_KEY = "email_outbox"
@@ -107,10 +108,16 @@ def notify_status_change(db: Session, req: Request, to_status: RequestStatus, ac
         return
     approved_no_fee = to_status == S.processing and from_status == S.under_review
     body = APPROVED_NO_FEE if approved_no_fee else MESSAGES.get(to_status, "")
+    next_step = NEXT_STEPS.get(to_status)
+    if to_status == S.awaiting_payment:
+        from app.services.app_settings import get_setting
+
+        body = f"{body} Amount due: ₱{req.fee_total:,.2f}."
+        next_step = f"{next_step} {get_setting(db, 'payment_instructions')}"
     if remarks and to_status in (S.needs_correction, S.rejected, S.shipped, S.ready_for_pickup):
         body = f"{body} Remarks: {remarks}"
     notify_student(db, req, "status_change", _headline(to_status, from_status), body, email=True, at=at,
-                   next_step=NEXT_STEPS.get(to_status))
+                   next_step=next_step)
 
 
 def notify_student(db: Session, req: Request, type_: str, headline: str, body: str, *, email: bool, at=None,

@@ -104,3 +104,42 @@ export function useBulkTransition() {
     },
   })
 }
+
+/** Pick-up appointments on one day (YYYY-MM-DD, Manila). */
+export function usePickupsOn(date) {
+  return useQuery({
+    queryKey: ['staff', 'pickups', date],
+    queryFn: async () => (await api.get('/staff/pickups', { params: { date } })).data,
+    placeholderData: keepPreviousData,
+    refetchInterval: 60_000,
+  })
+}
+
+// ---------- alumni / former student access requests ----------
+
+export function useAccountRequests(status) {
+  return useQuery({
+    queryKey: ['staff', 'account-requests', status],
+    queryFn: async () => (await api.get('/staff/account-requests', { params: { status } })).data,
+    placeholderData: keepPreviousData,
+  })
+}
+
+function useAccountRequestMutation(fn) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['staff', 'account-requests'] })
+      qc.invalidateQueries({ queryKey: staffKeys.dashboard })
+    },
+  })
+}
+
+export const useApproveAccountRequest = () =>
+  useAccountRequestMutation(async (id) => (await api.post(`/staff/account-requests/${id}/approve`)).data)
+
+export const useRejectAccountRequest = () =>
+  useAccountRequestMutation(
+    async ({ id, remarks }) => (await api.post(`/staff/account-requests/${id}/reject`, { remarks })).data,
+  )

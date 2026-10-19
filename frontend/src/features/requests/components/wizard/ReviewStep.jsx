@@ -17,7 +17,9 @@ export function formatFieldValue(field, value) {
 
 export function addressText(a) {
   if (!a) return null
-  return `${a.recipient} · ${a.contact_no}\n${a.line1}, ${a.city}, ${a.province} ${a.zip}`
+  const street = [a.line1, a.barangay && `Brgy. ${a.barangay.replace(/^Barangay /, '')}`].filter(Boolean).join(', ')
+  const landmark = a.landmark ? `\nLandmark: ${a.landmark}` : ''
+  return `${a.recipient} · ${a.contact_no}\n${street}, ${a.city}, ${a.province} ${a.zip}${landmark}`
 }
 
 function Section({ title, onEdit, children }) {

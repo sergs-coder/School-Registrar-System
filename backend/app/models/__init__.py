@@ -1,10 +1,19 @@
 from app.models.catalog import DocumentType
 from app.models.enums import *  # noqa: F403
-from app.models.request import IssuedDocument, Payment, ReferenceCounter, Request, RequestAttachment, RequestStatusHistory
+from app.models.request import (
+    IssuedDocument,
+    Payment,
+    PickupAppointment,
+    ReferenceCounter,
+    Request,
+    RequestAttachment,
+    RequestStatusHistory,
+)
 from app.models.system import Announcement, AuditLog, Holiday, Notification, Setting
-from app.models.user import PasswordResetToken, Program, RefreshToken, Staff, Student, User
+from app.models.user import AccountRequest, PasswordResetToken, Program, RefreshToken, Staff, Student, User
 
 __all__ = [
+    "AccountRequest",
     "Announcement",
     "AuditLog",
     "DocumentType",
@@ -13,6 +22,7 @@ __all__ = [
     "Notification",
     "PasswordResetToken",
     "Payment",
+    "PickupAppointment",
     "Program",
     "ReferenceCounter",
     "RefreshToken",

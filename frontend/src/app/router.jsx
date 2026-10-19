@@ -31,6 +31,8 @@ const pages = {
   profile: page(() => import('@/features/profile/pages/ProfilePage'), 'ProfilePage'),
   dashboard: page(() => import('@/features/registrar/pages/DashboardPage'), 'DashboardPage'),
   queue: page(() => import('@/features/registrar/pages/QueuePage'), 'QueuePage'),
+  accountRequests: page(() => import('@/features/registrar/pages/AccountRequestsPage'), 'AccountRequestsPage'),
+  alumniAccess: page(() => import('@/features/auth/pages/AlumniAccessPage'), 'AlumniAccessPage'),
   documentTypes: page(() => import('@/features/admin/pages/DocumentTypesPage'), 'DocumentTypesPage'),
   users: page(() => import('@/features/admin/pages/UsersPage'), 'UsersPage'),
   reports: page(() => import('@/features/admin/pages/ReportsPage'), 'ReportsPage'),
@@ -52,6 +54,7 @@ export const router = createBrowserRouter([
               { path: '/login', lazy: pages.login },
               { path: '/forgot-password', lazy: pages.forgot },
               { path: '/reset-password', lazy: pages.reset },
+              { path: '/alumni-access', lazy: pages.alumniAccess },
             ],
           },
         ],
@@ -88,6 +91,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, lazy: pages.dashboard },
               { path: 'requests', lazy: pages.queue },
+              { path: 'account-requests', lazy: pages.accountRequests },
               {
                 path: 'admin',
                 element: <RequireAuth roles={['admin']} />,

@@ -1,16 +1,29 @@
-import { AlarmClock, ArrowRight, CalendarCheck, Inbox, PackageCheck, UserCheck, Wallet } from 'lucide-react'
+import {
+  AlarmClock,
+  ArrowRight,
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  GraduationCap,
+  Inbox,
+  PackageCheck,
+  UserCheck,
+  Wallet,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ErrorState, PageHeader } from '@/components/shared/misc'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useDashboard, useSubmissionTrend } from '@/features/registrar/api'
+import { useDashboard, usePickupsOn, useSubmissionTrend } from '@/features/registrar/api'
 import { useAuth } from '@/lib/auth'
 import { QUEUE_VIEWS, STATUS, TERMINAL } from '@/lib/status'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, formatDate, formatSlot } from '@/lib/utils'
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -36,6 +49,21 @@ export function DashboardPage() {
           data ? `${data.active_total} open requests · ${data.submitted_today} submitted today` : 'Loading today’s numbers…'
         }
       />
+
+      {data?.account_requests_pending > 0 && (
+        <Alert
+          tone="info"
+          icon={GraduationCap}
+          title={`${data.account_requests_pending} alumni / former student access ${data.account_requests_pending === 1 ? 'request' : 'requests'} to review`}
+          action={
+            <Button asChild size="sm" variant="secondary">
+              <Link to="/registrar/account-requests">Review</Link>
+            </Button>
+          }
+        >
+          Check their details and ID against your records, then approve or reject.
+        </Alert>
+      )}
 
       <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {tiles.map(({ label, value, icon: Icon, status, to }) => (
@@ -92,7 +120,90 @@ export function DashboardPage() {
           dateLabel={(r) => <span className="text-muted">Ready since {formatDate(r.updated_at)}</span>}
         />
       </div>
+
+      <PickupAppointmentsCard />
     </div>
+  )
+}
+
+const manilaDay = (offset = 0) =>
+  new Date(Date.now() + offset * 86_400_000).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+const shiftDay = (day, by) => {
+  const d = new Date(`${day}T12:00:00+08:00`)
+  d.setUTCDate(d.getUTCDate() + by)
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+}
+
+/** Who booked to collect documents on a given day, earliest first. */
+function PickupAppointmentsCard() {
+  const navigate = useNavigate()
+  const [day, setDay] = useState(manilaDay)
+  const { data: rows, isLoading, error, refetch } = usePickupsOn(day)
+  const isToday = day === manilaDay()
+  return (
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <CardTitle>
+            Pick-up appointments{' '}
+            {rows?.length > 0 && (
+              <span className="ml-1 rounded-full bg-surface-muted px-2 py-0.5 text-xs font-semibold text-muted">{rows.length}</span>
+            )}
+          </CardTitle>
+          <CardDescription>Students who booked a time to claim their documents.</CardDescription>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" aria-label="Previous day" onClick={() => setDay((d) => shiftDay(d, -1))}>
+            <ChevronLeft />
+          </Button>
+          <span className="min-w-36 text-center text-sm font-medium text-fg" aria-live="polite">
+            {isToday ? 'Today, ' : ''}
+            {formatDate(day, { weekday: 'short', year: undefined })}
+          </span>
+          <Button variant="ghost" size="sm" aria-label="Next day" onClick={() => setDay((d) => shiftDay(d, 1))}>
+            <ChevronRight />
+          </Button>
+          {!isToday && (
+            <Button variant="secondary" size="sm" onClick={() => setDay(manilaDay())}>
+              Today
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {error ? (
+          <ErrorState error={error} onRetry={refetch} />
+        ) : isLoading ? (
+          <Skeleton className="h-24" />
+        ) : rows.length === 0 ? (
+          <p className="rounded-xl bg-surface-muted px-4 py-6 text-center text-sm text-muted">No pick-ups booked for this day.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {rows.map((a) => (
+              <li key={a.reference_no}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/registrar/requests?tab=all&view=${a.reference_no}`)}
+                  className="flex w-full items-center gap-4 rounded-lg px-2 py-2.5 text-left hover:bg-surface-muted"
+                >
+                  <span className="w-20 shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums text-fg">{formatSlot(a.time)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-fg">
+                      {a.student_name} <span className="font-normal text-muted">· {a.document_name}</span>
+                    </p>
+                    <p className="text-xs text-muted">
+                      <span className="font-mono">{a.reference_no}</span> · {a.student_no}
+                      {a.copies > 1 && ` · ${a.copies} copies`}
+                    </p>
+                  </div>
+                  <StatusBadge status={a.status} size="sm" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

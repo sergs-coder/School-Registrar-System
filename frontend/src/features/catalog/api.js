@@ -45,3 +45,12 @@ export const CATEGORY_LABELS = {
   certificate: 'Certifications',
   form: 'Registrar forms',
 }
+
+/** Metro Manila cities/municipality and their barangays, for courier addresses. Never changes in a session. */
+export function useMetroManila() {
+  return useQuery({
+    queryKey: ['locations', 'metro-manila'],
+    queryFn: async () => (await api.get('/locations/metro-manila')).data,
+    staleTime: Infinity,
+  })
+}

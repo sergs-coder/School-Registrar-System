@@ -13,7 +13,7 @@ import { homePathFor, useAuth } from '@/lib/auth'
 import { errorMessage } from '@/lib/errors'
 
 const schema = z.object({
-  identifier: z.string().trim().min(3, 'Enter your university email or student number.'),
+  identifier: z.string().trim().min(3, 'Enter your email or student number.'),
   password: z.string().min(1, 'Enter your password.'),
 })
 
@@ -45,7 +45,7 @@ export function LoginPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-[28px] font-semibold leading-9 tracking-tight text-fg">Sign in</h1>
-        <p className="text-[15px] text-muted">Use your TUA email or student number.</p>
+        <p className="text-[15px] text-muted">Use your TUA email, student number or confirmed personal email.</p>
       </div>
 
       {formError && <Alert tone="danger">{formError}</Alert>}
@@ -93,13 +93,21 @@ export function LoginPage() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-muted">
-        No account yet? Visit the Registrar’s Office or email{' '}
-        <a className="font-medium text-link hover:underline" href="mailto:registrar@tua.edu.ph">
-          registrar@tua.edu.ph
-        </a>
-        .
-      </p>
+      <div className="space-y-2 text-center text-sm text-muted">
+        <p>
+          Alumni or former student without an account?{' '}
+          <Link to="/alumni-access" className="font-medium text-link hover:underline">
+            Request access
+          </Link>
+        </p>
+        <p>
+          Other questions? Email{' '}
+          <a className="font-medium text-link hover:underline" href="mailto:registrar@tua.edu.ph">
+            registrar@tua.edu.ph
+          </a>
+          .
+        </p>
+      </div>
     </div>
   )
 }

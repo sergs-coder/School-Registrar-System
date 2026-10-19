@@ -22,7 +22,7 @@ import {
 } from '@/features/admin/api'
 import { ConfirmDialog } from '@/features/admin/components'
 import { apiError, errorMessage } from '@/lib/errors'
-import { cn, formatDate, formatDateTime } from '@/lib/utils'
+import { cn, formatDate, formatDateTime, formatSlot } from '@/lib/utils'
 
 const fieldErrors = (err) =>
   Object.fromEntries((apiError(err).details ?? []).filter((d) => d.field).map((d) => [d.field, d.message.replace(/^Value error, /, '')]))
@@ -32,6 +32,7 @@ export function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Settings" description="Office details, fees, closed days and announcements shown in the portal." />
       <OfficeSettings />
+      <PickupHours />
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <Holidays />
         <div className="space-y-6">
@@ -57,15 +58,17 @@ function OfficeSettings() {
   if (error) return <ErrorState error={error} onRetry={refetch} />
   if (isLoading || !form) return <Skeleton className="h-96 rounded-2xl" />
 
+  // Pick-up hours have their own card; always send the saved schedule from here.
+  const own = (v) => ({ ...v, pickup_schedule: undefined })
   const contact = form.registrar_contact
   const setContact = (patch) => setForm((f) => ({ ...f, registrar_contact: { ...f.registrar_contact, ...patch } }))
-  const dirty = JSON.stringify(form) !== JSON.stringify(data)
+  const dirty = JSON.stringify(own(form)) !== JSON.stringify(own(data))
 
   async function onSubmit(e) {
     e.preventDefault()
     setErrors({})
     try {
-      await save.mutateAsync(form)
+      await save.mutateAsync({ ...form, pickup_schedule: data.pickup_schedule })
       toast.success('Settings saved')
     } catch (err) {
       setErrors(fieldErrors(err))
@@ -122,6 +125,137 @@ function OfficeSettings() {
           )}
           <Button type="submit" loading={save.isPending} disabled={!dirty}>
             Save settings
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------- pick-up hours ----------
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const HOURS = Array.from({ length: 12 }, (_, i) => `${String(i + 7).padStart(2, '0')}:00`)
+
+function PickupHours() {
+  const { data } = useAdminSettings()
+  const save = useSaveSettings()
+  const [sched, setSched] = useState(null)
+  const [errors, setErrors] = useState({})
+  useEffect(() => {
+    if (data) setSched(data.pickup_schedule)
+  }, [data])
+
+  if (!sched) return <Skeleton className="h-80 rounded-2xl" />
+
+  const dirty = JSON.stringify(sched) !== JSON.stringify(data.pickup_schedule)
+  const open = (day, hour) => sched.slots[day]?.includes(hour)
+  const toggle = (day, hour) =>
+    setSched((s) => {
+      const times = s.slots[day] ?? []
+      const next = times.includes(hour) ? times.filter((t) => t !== hour) : [...times, hour].sort()
+      return { ...s, slots: { ...s.slots, [day]: next } }
+    })
+  const perWeek = Object.values(sched.slots).reduce((n, times) => n + times.length, 0) * (Number(sched.capacity) || 0)
+
+  async function onSubmit(e) {
+    e.preventDefault()
+    setErrors({})
+    try {
+      await save.mutateAsync({
+        ...data,
+        pickup_schedule: { ...sched, capacity: Number(sched.capacity), days_ahead: Number(sched.days_ahead) },
+      })
+      toast.success('Pick-up hours saved')
+    } catch (err) {
+      setErrors(fieldErrors(err))
+      toast.error(errorMessage(err))
+    }
+  }
+
+  return (
+    <Card as="form" onSubmit={onSubmit} noValidate>
+      <CardHeader>
+        <CardTitle>Pick-up appointments</CardTitle>
+        <CardDescription>
+          The hours students can book to collect their documents. Each slot is one hour. Closed days have no slots.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] border-separate border-spacing-1 text-sm">
+            <caption className="sr-only">Open pick-up hours by weekday</caption>
+            <thead>
+              <tr>
+                <th scope="col" className="w-28 text-left font-medium text-muted">
+                  <span className="sr-only">Day</span>
+                </th>
+                {HOURS.map((h) => (
+                  <th key={h} scope="col" className="text-center text-xs font-medium text-muted">
+                    {formatSlot(h).replace(':00', '')}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {WEEKDAYS.map((name, d) => (
+                <tr key={name}>
+                  <th scope="row" className="pr-2 text-left font-medium text-fg">
+                    {name}
+                  </th>
+                  {HOURS.map((h) => {
+                    const on = open(String(d), h)
+                    return (
+                      <td key={h}>
+                        <button
+                          type="button"
+                          aria-pressed={on}
+                          aria-label={`${name} ${formatSlot(h)}`}
+                          onClick={() => toggle(String(d), h)}
+                          className={cn(
+                            'h-8 w-full rounded-md border transition-colors',
+                            on ? 'border-primary bg-primary text-on-primary' : 'border-border-strong bg-surface hover:bg-surface-muted',
+                          )}
+                        >
+                          {on && <span aria-hidden="true">✓</span>}
+                        </button>
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            label="Students per slot"
+            required
+            error={errors['pickup_schedule.capacity']}
+            help="How many students the window can serve in one hour."
+          >
+            <Input type="number" min="1" max="100" inputMode="numeric" value={sched.capacity} onChange={(e) => setSched({ ...sched, capacity: e.target.value })} />
+          </FormField>
+          <FormField
+            label="Book up to (days ahead)"
+            required
+            error={errors['pickup_schedule.days_ahead']}
+            help="Students can choose a day from today up to this many days later."
+          >
+            <Input type="number" min="1" max="60" inputMode="numeric" value={sched.days_ahead} onChange={(e) => setSched({ ...sched, days_ahead: e.target.value })} />
+          </FormField>
+        </div>
+        <p className="text-[13px] text-muted">
+          Up to {perWeek} pick-ups a week. Changes apply to new bookings; existing bookings keep their time.
+        </p>
+        <div className="flex justify-end gap-2">
+          {dirty && (
+            <Button type="button" variant="ghost" onClick={() => { setSched(data.pickup_schedule); setErrors({}) }}>
+              Discard changes
+            </Button>
+          )}
+          <Button type="submit" loading={save.isPending} disabled={!dirty}>
+            Save pick-up hours
           </Button>
         </div>
       </CardContent>

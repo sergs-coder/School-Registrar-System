@@ -13,6 +13,17 @@ DEFAULTS = {
         "phone": "(02) 8702-2882",
         "hours": "Mon–Fri 8:00 AM – 5:00 PM, Sat 8:00 AM – 12:00 NN",
     },
+    # Pick-up appointments: hourly slot start times per weekday ("0" = Monday), how many students each
+    # slot takes, and how far ahead students may book. Closed days (holidays) have no slots.
+    "pickup_schedule": {
+        "slots": {
+            **{str(d): ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"] for d in range(5)},
+            "5": ["08:00", "09:00", "10:00", "11:00"],
+            "6": [],
+        },
+        "capacity": 5,
+        "days_ahead": 14,
+    },
     "payment_instructions": (
         "Pay at the University Cashier, or via bank deposit / GCash / Maya using your reference number "
         "as the payment note. Upload a clear photo of your receipt."

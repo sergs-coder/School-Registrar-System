@@ -2,6 +2,7 @@ import {
   BarChart3,
   ClipboardList,
   FileCog,
+  GraduationCap,
   LayoutDashboard,
   Menu,
   PackageCheck,
@@ -30,6 +31,7 @@ const SECTIONS = [
       { to: '/registrar/requests', label: 'Request queue', icon: ClipboardList },
       { to: '/registrar/requests?tab=payment', tab: 'payment', label: 'Payments', icon: Wallet },
       { to: '/registrar/requests?tab=release', tab: 'release', label: 'Releases', icon: PackageCheck },
+      { to: '/registrar/account-requests', label: 'Alumni access', icon: GraduationCap },
     ],
   },
   {

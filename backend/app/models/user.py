@@ -4,7 +4,7 @@ from sqlalchemy import Enum, ForeignKey, String, true as sa_true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.models.enums import Role, Standing
+from app.models.enums import AccountRequestStatus, Role, Standing
 
 
 def enum_col(enum_cls, **kw):
@@ -124,3 +124,36 @@ class PasswordResetToken(Base):
     expires_at: Mapped[datetime]
     used_at: Mapped[datetime | None]
     created_at: Mapped[datetime]
+
+
+class AccountRequest(TimestampMixin, Base):
+    """An alumnus or former student asking for portal access (no account, or lost their university mailbox).
+
+    Staff check the details and the uploaded ID against the Registrar's records. Approving links the request
+    to the existing student record (or creates one) and emails a set-password link to `email`.
+    """
+
+    __tablename__ = "account_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_no: Mapped[str] = mapped_column(String(20), index=True)
+    first_name: Mapped[str] = mapped_column(String(100))
+    middle_name: Mapped[str | None] = mapped_column(String(100))
+    last_name: Mapped[str] = mapped_column(String(100))
+    birthdate: Mapped[date]
+    email: Mapped[str] = mapped_column(String(255))
+    contact_no: Mapped[str | None] = mapped_column(String(20))
+    program: Mapped[str] = mapped_column(String(200))
+    last_year_attended: Mapped[int]
+    standing: Mapped[Standing] = enum_col(Standing)
+    id_filename: Mapped[str] = mapped_column(String(255))
+    id_storage_key: Mapped[str] = mapped_column(String(255))
+    id_mime_type: Mapped[str] = mapped_column(String(100))
+    status: Mapped[AccountRequestStatus] = enum_col(AccountRequestStatus, default=AccountRequestStatus.pending,
+                                                     index=True)
+    remarks: Mapped[str | None] = mapped_column(String(1000))
+    reviewed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    reviewed_at: Mapped[datetime | None]
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+
+    reviewed_by: Mapped[User | None] = relationship(foreign_keys=[reviewed_by_id])

@@ -93,11 +93,27 @@ class RegistrarContact(BaseModel):
     hours: str = Field(min_length=3, max_length=200)
 
 
+PICKUP_HOURS = [f"{h:02d}:00" for h in range(7, 19)]  # slot start times admins can open
+
+
+class PickupSchedule(BaseModel):
+    # Weekday ("0" = Monday … "6" = Sunday) -> hourly slot start times.
+    slots: dict[Literal["0", "1", "2", "3", "4", "5", "6"], list[Literal[*PICKUP_HOURS]]]
+    capacity: int = Field(ge=1, le=100, description="Students per slot")
+    days_ahead: int = Field(ge=1, le=60, description="How many days ahead students may book")
+
+    @field_validator("slots")
+    @classmethod
+    def tidy(cls, v: dict) -> dict:
+        return {str(d): sorted(set(v.get(str(d), []))) for d in range(7)}
+
+
 class SettingsIO(BaseModel):
     courier_fee_metro: Money = Field(ge=0, le=10000, max_digits=7, decimal_places=2)
     courier_fee_provincial: Money = Field(ge=0, le=10000, max_digits=7, decimal_places=2)
     registrar_contact: RegistrarContact
     payment_instructions: str = Field(min_length=10, max_length=1000)
+    pickup_schedule: PickupSchedule
 
 
 # ---------- holidays & announcements ----------

@@ -51,15 +51,27 @@ export function buildDetailsSchema(docType) {
     })
 }
 
-export const addressSchema = z.object({
-  recipient: z.string().trim().min(2, 'Enter the recipient’s full name.').max(150),
-  contact_no: z.string().trim().regex(PH_MOBILE, 'Use a PH mobile number, e.g. 09171234567.'),
-  line1: z.string().trim().min(3, 'Enter house no., street and barangay.').max(250),
-  city: z.string().trim().min(2, 'Enter the city or municipality.').max(100),
-  province: z.string().trim().min(2, 'Enter the province.').max(100),
-  zip: z.string().trim().regex(/^\d{4}$/, 'ZIP codes have 4 digits.'),
-  region: z.enum(['metro', 'provincial']),
-})
+export const addressSchema = z
+  .object({
+    recipient: z.string().trim().min(2, 'Enter the recipient’s full name.').max(150),
+    contact_no: z.string().trim().regex(PH_MOBILE, 'Use a PH mobile number, e.g. 09171234567.'),
+    region: z.enum(['metro', 'provincial']),
+    // Metro Manila: chosen from lists; the province is filled in by the server.
+    city: z.string().trim().min(2, 'Choose or enter the city or municipality.').max(100),
+    barangay: z.string().optional(),
+    province: z.string().trim().max(100).optional(),
+    line1: z.string().trim().min(3, 'Enter the house no. and street.').max(250),
+    zip: z.string().trim().regex(/^\d{4}$/, 'ZIP codes have 4 digits.'),
+    landmark: z.string().trim().max(200, 'Keep this under 200 characters.').optional(),
+  })
+  .superRefine((a, ctx) => {
+    if (a.region === 'metro' && !a.barangay) {
+      ctx.addIssue({ code: 'custom', path: ['barangay'], message: 'Choose the barangay.' })
+    }
+    if (a.region === 'provincial' && (a.province ?? '').length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['province'], message: 'Enter the province.' })
+    }
+  })
 
 export const deliverySchema = z.discriminatedUnion('delivery_method', [
   z.object({ delivery_method: z.literal('pickup') }),

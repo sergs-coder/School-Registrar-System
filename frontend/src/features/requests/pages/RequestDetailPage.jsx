@@ -30,6 +30,7 @@ import { useSiteInfo } from '@/features/catalog/api'
 import { openAttachment, openPickupSlip, useCancelRequest, useDeleteDraft, useRequest } from '@/features/requests/api'
 import { FeeSummary } from '@/features/requests/components/FeeSummary'
 import { EDocumentCard, PaymentCard } from '@/features/requests/components/PaymentCard'
+import { PickupCard } from '@/features/requests/components/PickupCard'
 import { addressText, formatFieldValue } from '@/features/requests/components/wizard/ReviewStep'
 import { errorMessage } from '@/lib/errors'
 import { STATUS, TERMINAL } from '@/lib/status'
@@ -78,6 +79,7 @@ export function RequestDetailPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
+          <PickupCard request={r} />
           <EDocumentCard request={r} />
           <PaymentCard request={r} />
 
@@ -242,8 +244,13 @@ function StatusCallout({ request: r, requiresPayment }) {
           title="Your document is ready for pick-up"
           action={r.allowed_actions.includes('pickup_slip') && <PickupSlipButton reference={r.reference_no} />}
         >
+          {r.pickup_appointment ? (
+            <>Your pick-up time is <strong>{r.pickup_appointment.label}</strong>. </>
+          ) : (
+            <>Book a pick-up time below. </>
+          )}
           Bring a valid ID and your pick-up slip (or reference number <strong className="font-mono">{r.reference_no}</strong>)
-          to the {contact?.office ?? 'Registrar’s Office'}. {contact?.hours}
+          to the {contact?.office ?? 'Registrar’s Office'}.
         </Alert>
       )
     case 'shipped':

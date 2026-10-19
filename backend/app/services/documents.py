@@ -168,6 +168,10 @@ def pickup_slip_pdf(req: Request, slip: IssuedDocument, contact: dict, ready_at:
         ("Copies", str(req.copies)),
         ("Ready since", _manila(ready_at) if ready_at else "—"),
     ]
+    if req.pickup_appointment:
+        from app.services.pickups import label
+
+        rows.append(("Pick-up time", label(req.pickup_appointment)))
     label_w = 28 * mm
     value_w = qr_x - 6 * mm - (x + label_w)
     row_y = y - 20 * mm

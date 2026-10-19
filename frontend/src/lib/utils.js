@@ -29,6 +29,12 @@ export function formatDateTime(value) {
   })
 }
 
+/** Pick-up slot start "13:00" -> "1:00 PM" */
+export function formatSlot(time) {
+  const [h, m] = time.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+}
+
 export function timeAgo(value) {
   const diff = (Date.now() - new Date(value).getTime()) / 1000
   if (diff < 60) return 'just now'
