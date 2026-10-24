@@ -130,6 +130,10 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
   ([`backend/app/data/metro_manila.json`](backend/app/data/metro_manila.json), from the PSGC, with the EMBO
   barangays under Taguig). The server rejects a barangay that isn't in the chosen city. Addresses outside
   Metro Manila stay free text. Every courier address can include a landmark for the courier.
+- **Processing times:** the New request page charts each document's working days from approval to release,
+  with the date it would be ready if approved today (same working-day and closed-day rules as the workflow;
+  `ready_if_approved_today` on `GET /document-types`). Plain HTML bars, so students don't download a chart
+  library; rows re-flow on phones and the bar scale stays fixed across the category tabs.
 - **Pick-up appointments:** once a pick-up request is Ready for Pick-up, the student books a one-hour slot from
   the Registrar's open hours (set by admins: hours per weekday, students per slot, students per day (default
   15), how many days ahead) and can change or cancel it. Closed days have no slots, and once a day is full the

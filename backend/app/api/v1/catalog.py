@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models import Announcement, DocumentType
 from app.schemas.catalog import DocumentTypeOut
 from app.services.app_settings import get_setting
+from app.services.business_days import add_business_days, closed_dates, manila_date
 from app.services.locations import metro_manila
 
 router = APIRouter(tags=["catalog"])
@@ -16,9 +17,18 @@ router = APIRouter(tags=["catalog"])
 
 @router.get("/document-types", response_model=list[DocumentTypeOut], dependencies=[Depends(require_consent)])
 def list_document_types(db: Session = Depends(get_db)):
-    return db.execute(
+    docs = db.execute(
         select(DocumentType).where(DocumentType.is_active.is_(True)).order_by(DocumentType.sort_order, DocumentType.name)
     ).scalars().all()
+    # Same rule as the workflow uses when a request starts processing (no review day).
+    today = manila_date(utcnow())
+    closed = closed_dates(db, today)
+    return [
+        DocumentTypeOut.model_validate(d).model_copy(
+            update={"ready_if_approved_today": add_business_days(today, d.processing_days, closed)}
+        )
+        for d in docs
+    ]
 
 
 @router.get("/document-types/{slug}", response_model=DocumentTypeOut, dependencies=[Depends(require_consent)])

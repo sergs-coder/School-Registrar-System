@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CATEGORY_LABELS, useDocumentTypes } from '@/features/catalog/api'
+import { TurnaroundChart } from '@/features/catalog/components/TurnaroundChart'
 import { cn, formatPeso } from '@/lib/utils'
 
 export function feeLabel(doc) {
@@ -35,6 +36,11 @@ export function CatalogPage() {
       <PageHeader
         title="New request"
         description="Choose the document or form you need. You’ll see the fee, requirements and processing time before you submit."
+        actions={
+          <a href="#processing-times" className="inline-flex items-center gap-1.5 text-sm font-semibold text-link hover:underline">
+            <Clock className="size-4" aria-hidden="true" /> How long does it take?
+          </a>
+        }
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -91,6 +97,9 @@ export function CatalogPage() {
           ))}
         </ul>
       )}
+
+      {/* Follows the tab and search above, like the cards. */}
+      {data && <TurnaroundChart docs={filtered} allDocs={data} />}
     </div>
   )
 }

@@ -2,7 +2,12 @@
 
 TUA Student Request Portal (SRM System). Newest changes first.
 
-## 2026-10-25 — Student import and daily pick-up limit
+## 2026-10-25 — Student import, daily pick-up limit and processing times
+
+- **How long each document takes:** the New request page now has a chart of the working days each
+  document takes from approval to release, fastest first, with the date it would be ready if approved
+  today (weekends and closed days skipped). It follows the category tabs and search, and each row opens
+  that document's request form. It works on phones and computers, in light and dark mode.
 
 - **Import students:** admins can upload the enrollment list as a CSV file (Users → **Import students**) to
   create accounts for new students. The portal first shows a preview: which rows are new, which students

@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Literal
 
@@ -45,3 +46,6 @@ class DocumentTypeOut(ORM):
     required_fields: list[FieldDef]
     required_attachments: list[AttachmentDef]
     instructions: str
+    # When the document would be released if the Registrar approved the request today (starts processing),
+    # counting working days and skipping closed days. An example for students, not a promise.
+    ready_if_approved_today: date | None = None
