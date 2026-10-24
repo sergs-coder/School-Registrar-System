@@ -12,14 +12,19 @@ GOLD = "#d4a017"
 INK = "#0f172a"
 MUTED = "#475569"
 LINE = "#e2e8f0"
-GREEN = "#16a34a"
+# Request state colors, as in the portal (frontend tokens.css --state-*): yellow = waiting on the student,
+# light green = the Registrar is on it, green = released, red = rejected, gray = cancelled.
+YELLOW, YELLOW_INK = "#eab308", "#854d0e"
+MINT, MINT_INK = "#34d399", "#065f46"
+GREEN = "#15803d"
 RED = "#dc2626"
+GRAY = "#94a3b8"
 
 
 @dataclass
 class TrackerStep:
     label: str
-    state: str  # done | current | todo | stopped
+    state: str  # done | current (Registrar's turn) | action (student's turn) | todo | stopped | cancelled
 
 
 @dataclass
@@ -39,7 +44,7 @@ def request_link(reference_no: str) -> str:
 
 
 def render_text(e: UpdateEmail) -> str:
-    marks = {"done": "[x]", "current": "[>]", "todo": "[ ]", "stopped": "[!]"}
+    marks = {"done": "[x]", "current": "[>]", "action": "[>]", "todo": "[ ]", "stopped": "[!]", "cancelled": "[!]"}
     lines = ["Hello,", ""] + (["ACTION NEEDED", ""] if e.urgent else []) + [e.body, ""]
     if e.next_step:
         lines += [e.next_step, ""]
@@ -65,11 +70,17 @@ def _tracker_html(steps: list[TrackerStep]) -> str:
             dot, color, weight = "&#10003;", GREEN, "600"
             circle = f"background:{GREEN};color:#fff;border:2px solid {GREEN};"
         elif s.state == "current":
-            dot, color, weight = "&#9679;", BLUE, "700"
-            circle = f"background:#fff;color:{BLUE};border:2px solid {BLUE};"
+            dot, color, weight = "&#9679;", MINT_INK, "700"
+            circle = f"background:#fff;color:{MINT};border:2px solid {MINT};"
+        elif s.state == "action":
+            dot, color, weight = "&#9679;", YELLOW_INK, "700"
+            circle = f"background:#fff;color:{YELLOW};border:2px solid {YELLOW};"
         elif s.state == "stopped":
             dot, color, weight = "&#10005;", RED, "700"
             circle = f"background:{RED};color:#fff;border:2px solid {RED};"
+        elif s.state == "cancelled":
+            dot, color, weight = "&#10005;", MUTED, "700"
+            circle = f"background:{GRAY};color:#fff;border:2px solid {GRAY};"
         else:
             dot, color, weight = "&nbsp;", MUTED, "400"
             circle = f"background:#fff;color:{MUTED};border:2px solid {LINE};"

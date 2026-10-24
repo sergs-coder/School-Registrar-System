@@ -27,23 +27,25 @@ export function ProgressStepper({ status, requiresPayment = true, history, compa
                 aria-hidden="true"
                 className={cn(
                   'absolute right-1/2 top-[11px] h-0.5 w-full -translate-y-1/2',
-                  complete || active ? 'bg-primary' : 'bg-border-strong',
+                  complete || active ? 'bg-[var(--state-done)]' : 'bg-border-strong',
                   halted && active && 'bg-border-strong',
                 )}
               />
             )}
+            {/* Done steps are green; the current one wears its status color (yellow: your turn, light green: the
+                Registrar is on it, red/gray: stopped). */}
             <span
               data-status={active ? status : undefined}
               className={cn(
                 'relative z-10 flex size-[22px] items-center justify-center rounded-full border-2 text-[11px] font-bold transition-colors',
-                complete && 'border-primary bg-primary text-on-primary',
-                active && !halted && 'status-ring border-primary bg-surface text-primary',
+                complete && 'border-[var(--state-done)] bg-[var(--state-done)] text-white',
+                active && !halted && 'status-ring border-[var(--s)] bg-surface',
                 active && halted && 'status-dot border-transparent text-white',
                 !complete && !active && 'border-border-strong bg-surface text-subtle',
               )}
             >
               {complete ? <Check className="size-3" strokeWidth={3} aria-hidden="true" /> : active && !halted ? (
-                <span className="size-2 rounded-full bg-primary" />
+                <span className="status-dot size-2 rounded-full" />
               ) : null}
             </span>
             <span

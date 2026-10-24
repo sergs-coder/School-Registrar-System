@@ -226,7 +226,7 @@ function StatusBars({ counts }) {
               className="group grid grid-cols-[148px_1fr_32px] items-center gap-3 rounded-lg py-0.5 text-sm"
             >
               <span className="flex items-center gap-2 truncate text-muted group-hover:text-fg">
-                <Icon className="size-4 shrink-0" aria-hidden="true" data-status={status} style={{ color: 'var(--s)' }} />
+                <Icon className="size-4 shrink-0" aria-hidden="true" data-status={status} style={{ color: 'var(--s-fg)' }} />
                 {meta.label}
               </span>
               <span className="h-5 rounded-r bg-surface-muted/60" aria-hidden="true">

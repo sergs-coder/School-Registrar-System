@@ -78,6 +78,9 @@ All colors live in [`frontend/src/styles/tokens.css`](frontend/src/styles/tokens
 To use the real logo, put it in `frontend/public/` and swap the placeholder SVG in
 [`frontend/src/components/brand/Logo.jsx`](frontend/src/components/brand/Logo.jsx).
 Request status colors (`--status-*`) are defined in the same file and drive every badge, stepper and timeline.
+Each status points at one of five state colors (`--state-*`): yellow when the student must act, light green
+while the Registrar works on it, green when released, red when rejected, gray for drafts and cancelled. The
+tracking emails use the same colors (`backend/app/services/email_templates.py`).
 
 ## Key design points
 

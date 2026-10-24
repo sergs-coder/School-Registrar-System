@@ -62,6 +62,11 @@ def recipients_for(req: Request) -> list[str]:
     return out
 
 
+# The current step is yellow when the student has to act, light green while the Registrar works on it
+# (same grouping as the portal's status colors).
+STUDENT_TURN = {S.needs_correction, S.awaiting_payment, S.ready_for_pickup}
+
+
 def tracker(req: Request) -> list[TrackerStep]:
     """The student-facing stages, mirroring the request page's progress stepper."""
     from app.services.workflow import payment_required
@@ -84,7 +89,14 @@ def tracker(req: Request) -> list[TrackerStep]:
         if i < current:
             state = "done"
         elif i == current:
-            state = "stopped" if stopped else ("done" if req.status == S.completed else "current")
+            if req.status == S.completed:
+                state = "done"
+            elif req.status == S.rejected:
+                state = "stopped"
+            elif req.status == S.cancelled:
+                state = "cancelled"
+            else:
+                state = "action" if req.status in STUDENT_TURN else "current"
         else:
             state = "todo"
         steps.append(TrackerStep(label, state))

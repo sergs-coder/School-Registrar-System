@@ -4,6 +4,13 @@ TUA Student Request Portal (SRM System). Newest changes first.
 
 ## 2026-10-25 — Student import, daily pick-up limit and processing times
 
+- **Simpler status colors:** request statuses now use five colors by what the request needs:
+  **yellow** when the student must act (needs correction, awaiting payment, ready for pick-up),
+  **light green** while the Registrar works on it, **green** when released, **red** when rejected and
+  **gray** for drafts and cancelled requests. This applies to badges, the progress tracker, the timeline,
+  the staff dashboard and the tracking emails. Labels and icons stay, so color is never the only cue, and
+  the colors were checked for color-blind readers in light and dark mode.
+
 - **How long each document takes:** the New request page now has a chart of the working days each
   document takes from approval to release, fastest first, with the date it would be ready if approved
   today (weekends and closed days skipped). It follows the category tabs and search, and each row opens

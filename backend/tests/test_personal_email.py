@@ -2,6 +2,7 @@ import pytest
 
 from app.models import AuditLog
 from app.services import notifications
+from app.services.email_templates import MINT, YELLOW
 from tests.conftest import doc_id
 from tests.test_staff import move, staff_headers, submitted_request
 
@@ -82,6 +83,10 @@ def test_every_status_change_sends_a_tracking_email(client, db, student, student
     _, _, text, html = outbox[2]  # approval email
     assert "Next: pay the fee" in text and "[>] Payment" in text and "[x] Review" in text
     assert "Track your request" in html and f"/requests/{ref}" in html
+    # The current step is yellow when it's the student's turn (pay), light green while the Registrar works.
+    assert YELLOW in html and MINT not in html
+    _, _, _, processing_html = outbox[4]
+    assert MINT in processing_html and YELLOW not in processing_html
     _, _, text, _ = outbox[-1]
     assert "[x] Released" in text and "has been released" in text
 

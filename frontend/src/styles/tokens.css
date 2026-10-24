@@ -63,20 +63,29 @@
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
   --shadow-pop: 0 10px 30px rgb(15 23 42 / 0.12), 0 2px 6px rgb(15 23 42 / 0.06);
 
-  /* Request status colors — used by badges, timeline, stepper and charts. */
-  --status-draft: #64748b;            --status-draft-fg: #334155;
-  --status-submitted: #0284c7;        --status-submitted-fg: #075985;
-  --status-under_review: #3157c2;     --status-under_review-fg: #1c3785;
-  --status-needs_correction: #ea580c; --status-needs_correction-fg: #9a3412;
-  --status-resubmitted: #0ea5e9;      --status-resubmitted-fg: #075985;
-  --status-awaiting_payment: #d4a017; --status-awaiting_payment-fg: #6b4f0e;
-  --status-payment_verified: #0d9488; --status-payment_verified-fg: #115e59;
-  --status-processing: #7c3aed;       --status-processing-fg: #5b21b6;
-  --status-ready_for_pickup: #0891b2; --status-ready_for_pickup-fg: #155e75;
-  --status-shipped: #0891b2;          --status-shipped-fg: #155e75;
-  --status-completed: #16a34a;        --status-completed-fg: #166534;
-  --status-rejected: #dc2626;         --status-rejected-fg: #991b1b;
-  --status-cancelled: #94a3b8;        --status-cancelled-fg: #475569;
+  /* Request state colors: what a request needs, not which step it is on (labels and icons say that).
+     Validated for color-blind separation on --surface; dark steps below. Yellow and mint are pale on
+     white, so they always ship with a label, and text uses the -fg step. */
+  --state-action: #eab308;   --state-action-fg: #854d0e;   /* yellow: waiting on the student */
+  --state-ongoing: #34d399;  --state-ongoing-fg: #065f46;  /* light green: the Registrar is on it */
+  --state-done: #15803d;     --state-done-fg: #14532d;     /* green: released */
+  --state-rejected: #dc2626; --state-rejected-fg: #991b1b; /* red: not approved */
+  --state-neutral: #94a3b8;  --state-neutral-fg: #475569;  /* gray: draft or cancelled */
+
+  /* Request status colors — used by badges, timeline, stepper and charts. Each points at a state. */
+  --status-draft: var(--state-neutral);              --status-draft-fg: var(--state-neutral-fg);
+  --status-submitted: var(--state-ongoing);          --status-submitted-fg: var(--state-ongoing-fg);
+  --status-under_review: var(--state-ongoing);       --status-under_review-fg: var(--state-ongoing-fg);
+  --status-needs_correction: var(--state-action);    --status-needs_correction-fg: var(--state-action-fg);
+  --status-resubmitted: var(--state-ongoing);        --status-resubmitted-fg: var(--state-ongoing-fg);
+  --status-awaiting_payment: var(--state-action);    --status-awaiting_payment-fg: var(--state-action-fg);
+  --status-payment_verified: var(--state-ongoing);   --status-payment_verified-fg: var(--state-ongoing-fg);
+  --status-processing: var(--state-ongoing);         --status-processing-fg: var(--state-ongoing-fg);
+  --status-ready_for_pickup: var(--state-action);    --status-ready_for_pickup-fg: var(--state-action-fg);
+  --status-shipped: var(--state-ongoing);            --status-shipped-fg: var(--state-ongoing-fg);
+  --status-completed: var(--state-done);             --status-completed-fg: var(--state-done-fg);
+  --status-rejected: var(--state-rejected);          --status-rejected-fg: var(--state-rejected-fg);
+  --status-cancelled: var(--state-neutral);          --status-cancelled-fg: var(--state-neutral-fg);
   --status-bg-mix: 14%;
 
   /* Report chart series (validated for color-blind separation on --surface; dark steps below). */
@@ -115,19 +124,11 @@
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
   --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45);
 
-  --status-draft-fg: #cbd5e1;
-  --status-submitted-fg: #7dd3fc;
-  --status-under_review-fg: #b6c8f1;
-  --status-needs_correction-fg: #fdba74;
-  --status-resubmitted-fg: #7dd3fc;
-  --status-awaiting_payment-fg: #f5dd8a;
-  --status-payment_verified-fg: #5eead4;
-  --status-processing-fg: #c4b5fd;
-  --status-ready_for_pickup-fg: #67e8f9;
-  --status-shipped-fg: #67e8f9;
-  --status-completed-fg: #86efac;
-  --status-rejected-fg: #fca5a5;
-  --status-cancelled-fg: #cbd5e1;
+  --state-action: #ca8a04;   --state-action-fg: #fde047;
+  --state-ongoing: #10b981;  --state-ongoing-fg: #6ee7b7;
+  --state-done: #15803d;     --state-done-fg: #86efac;
+  --state-rejected: #dc2626; --state-rejected-fg: #fca5a5;
+  --state-neutral: #64748b;  --state-neutral-fg: #cbd5e1;
   --status-bg-mix: 20%;
 
   --series-1: #5579d6;
