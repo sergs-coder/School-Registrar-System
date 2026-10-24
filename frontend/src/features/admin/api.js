@@ -88,6 +88,14 @@ export const useUnlockUser = () =>
   useAdminMutation(async (id) => (await api.post(`/admin/users/${id}/unlock`)).data, [USERS])
 export const useSendPasswordLink = () =>
   useAdminMutation(async (id) => (await api.post(`/admin/users/${id}/send-password-link`)).data, [USERS])
+/** Without `confirm` the API only previews the file; with it, it creates the accounts. */
+export const useImportStudents = () =>
+  useAdminMutation(async ({ file, confirm }) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('confirm', confirm ? 'true' : 'false')
+    return (await api.post('/admin/students/import', form)).data
+  }, [USERS])
 
 // ---------- reports & audit ----------
 

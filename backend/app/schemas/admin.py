@@ -100,6 +100,7 @@ class PickupSchedule(BaseModel):
     # Weekday ("0" = Monday … "6" = Sunday) -> hourly slot start times.
     slots: dict[Literal["0", "1", "2", "3", "4", "5", "6"], list[Literal[*PICKUP_HOURS]]]
     capacity: int = Field(ge=1, le=100, description="Students per slot")
+    daily_limit: int = Field(default=15, ge=1, le=500, description="Students per day, across all slots")
     days_ahead: int = Field(ge=1, le=60, description="How many days ahead students may book")
 
     @field_validator("slots")
@@ -196,6 +197,23 @@ class UserActionOut(BaseModel):
     user: UserRow
     # Only in development, where emails go to the log instead of an inbox.
     setup_link: str | None = None
+
+
+class ImportRowOut(BaseModel):
+    line: int
+    student_no: str
+    email: str
+    name: str
+    status: Literal["create", "skip", "error"]
+    messages: list[str]
+
+
+class StudentImportOut(BaseModel):
+    confirmed: bool  # False: a preview, nothing was saved
+    to_create: int
+    skipped: int
+    errors: int
+    rows: list[ImportRowOut]
 
 
 # ---------- reports ----------

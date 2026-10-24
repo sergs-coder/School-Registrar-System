@@ -89,7 +89,9 @@ function SlotPicker({ reference, current, onDone, onCancel }) {
     )
   }
 
-  const selectedDay = data.days.find((d) => d.date === day) ?? data.days[0]
+  // Start on the student's current day, else the first day that still has room.
+  const selectedDay = data.days.find((d) => d.date === day) ?? data.days.find((d) => d.left > 0) ?? data.days[0]
+  const dayFull = selectedDay.left === 0
   const chosen = time && selectedDay.slots.find((s) => s.time === time && s.left > 0)
 
   async function confirm() {
@@ -112,7 +114,7 @@ function SlotPicker({ reference, current, onDone, onCancel }) {
         <legend className="mb-2 text-sm font-medium text-fg">Day</legend>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {data.days.map((d) => {
-            const open = d.slots.some((s) => s.left > 0)
+            const open = d.left > 0 && d.slots.some((s) => s.left > 0)
             const selected = d.date === selectedDay.date
             return (
               <button
@@ -130,12 +132,17 @@ function SlotPicker({ reference, current, onDone, onCancel }) {
                 )}
               >
                 <span className="block font-medium">{dayLabel(d.date)}</span>
-                <span className="block text-xs text-muted">{open ? 'Open' : 'Full'}</span>
+                <span className="block text-xs text-muted">{open ? `${d.left} ${d.left === 1 ? 'spot' : 'spots'} left` : 'Full'}</span>
               </button>
             )
           })}
         </div>
       </fieldset>
+      {dayFull && (
+        <Alert tone="warning" title={`${dayLabel(selectedDay.date)} is fully booked`}>
+          Please choose another day.
+        </Alert>
+      )}
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-fg">Time</legend>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

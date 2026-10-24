@@ -2,6 +2,18 @@
 
 TUA Student Request Portal (SRM System). Newest changes first.
 
+## 2026-10-25 — Student import and daily pick-up limit
+
+- **Import students:** admins can upload the enrollment list as a CSV file (Users → **Import students**) to
+  create accounts for new students. The portal first shows a preview: which rows are new, which students
+  already have an account (these are skipped, never changed) and which rows need fixing. Confirming creates
+  the new accounts, and each student gets an email with a link to set their password (valid for 72 hours).
+  They then sign in with their student number or email. A template file is available in the dialog.
+- **Daily pick-up limit:** each day takes at most 15 pick-ups across all its hours (admins can change the
+  number in Settings). Students see how many spots each day has left. Once a day is full, all its times
+  show as full and students choose another day. Existing hourly limits still apply.
+- Includes a database migration.
+
 ## 2026-10-20 — Address picker, pick-up appointments and alumni access
 
 - **Courier addresses in Metro Manila:** choose the city or municipality, then its barangay from a list (all

@@ -2,7 +2,8 @@
 import secrets
 from datetime import timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request as HttpRequest, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, Request as HttpRequest, Response, UploadFile, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.orm import Session, selectinload
 
@@ -32,12 +33,15 @@ from app.schemas.admin import (
     HolidayIn,
     HolidayOut,
     SettingsIO,
+    ImportRowOut,
     StaffCreate,
+    StudentImportOut,
     UserActionOut,
     UserRow,
     UserUpdate,
 )
 from app.schemas.common import Page
+from app.services import student_import
 from app.services.app_settings import get_setting
 from app.services.audit import audit
 from app.services.email import send_email
@@ -286,7 +290,13 @@ def _send_setup_link(db: Session, u: User, tasks: BackgroundTasks, *, welcome: b
     db.add(PasswordResetToken(user_id=u.id, token_hash=hash_token(raw),
                               expires_at=utcnow() + timedelta(hours=SETUP_LINK_HOURS), created_at=utcnow()))
     link = f"{settings.frontend_url}/reset-password?token={raw}"
-    if welcome:
+    sign_in = ""
+    if welcome and u.role == Role.student:
+        subject = "Your TUA Student Request Portal account"
+        intro = ("The Registrar's Office created your account on the TUA Student Request Portal, where you can "
+                 "request your academic records and forms online.")
+        sign_in = f"\n\nAfterwards, sign in with your student number ({u.student_no}) or this email address."
+    elif welcome:
         subject = "Your TUA Registrar back-office account"
         intro = f"An account was created for you on the TUA Student Request Portal ({u.email})."
     else:
@@ -295,7 +305,7 @@ def _send_setup_link(db: Session, u: User, tasks: BackgroundTasks, *, welcome: b
     tasks.add_task(
         send_email, u.email, subject,
         f"Hello,\n\n{intro} Use this link to choose your password. It expires in {SETUP_LINK_HOURS} hours:\n\n"
-        f"{link}\n\n— Office of the University Registrar",
+        f"{link}{sign_in}\n\n— Office of the University Registrar",
     )
     return link
 
@@ -347,7 +357,7 @@ def list_users(
 @router.post("/users", response_model=UserActionOut, status_code=status.HTTP_201_CREATED)
 def create_staff(body: StaffCreate, http: HttpRequest, tasks: BackgroundTasks, user: User = Depends(require_admin),
                  db: Session = Depends(get_db)):
-    """Creates a staff or admin account. Students come from the Registrar's records, not from here."""
+    """Creates a staff or admin account. Students come in through the CSV import or alumni access."""
     email = body.email.lower()
     if db.execute(select(User.id).where(func.lower(User.email) == email)).first():
         raise _conflict("email", "An account with this email already exists.")
@@ -364,6 +374,33 @@ def create_staff(body: StaffCreate, http: HttpRequest, tasks: BackgroundTasks, u
           meta={"email": email, "role": body.role})
     db.commit()
     return UserActionOut(user=_row(u), setup_link=_dev_link(link))
+
+
+@router.post("/students/import", response_model=StudentImportOut)
+async def import_students(http: HttpRequest, tasks: BackgroundTasks, file: UploadFile = File(...),
+                          confirm: bool = Form(False), user: User = Depends(require_admin),
+                          db: Session = Depends(get_db)):
+    """Creates student accounts from an enrollment list (CSV). Without `confirm` it only previews the rows.
+    New students get an email with a link to set their password; existing accounts are left as they are."""
+    rows = student_import.parse(db, await file.read(student_import.MAX_BYTES + 1))
+    counts = {s: sum(r.status == s for r in rows) for s in ("create", "skip", "error")}
+    if confirm and counts["create"]:
+        try:
+            for u in student_import.create(db, rows):
+                _send_setup_link(db, u, tasks, welcome=True)
+            audit(db, "students_imported", actor=user, entity_type="user", http=http,
+                  meta={"file": (file.filename or "")[:200], "created": counts["create"],
+                        "skipped": counts["skip"], "errors": counts["error"]})
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise AppError("IMPORT_CONFLICT", "Some of these students were added while you were importing. "
+                                              "Upload the file again to see the latest preview.", 409) from None
+    return StudentImportOut(
+        confirmed=confirm, to_create=counts["create"], skipped=counts["skip"], errors=counts["error"],
+        rows=[ImportRowOut(line=r.line, student_no=r.student_no, email=r.email, name=r.name, status=r.status,
+                           messages=r.messages) for r in rows],
+    )
 
 
 @router.patch("/users/{user_id}", response_model=UserActionOut)

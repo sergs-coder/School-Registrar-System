@@ -174,6 +174,7 @@ class PickupSlot(BaseModel):
 
 class PickupDay(BaseModel):
     date: dt.date
+    left: int
     slots: list[PickupSlot]
 
 

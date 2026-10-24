@@ -28,7 +28,7 @@ def pickup_slots(ref: str, user: User = Depends(require_consent), db: Session = 
     days = pickups.open_days(db, utcnow(), exclude_request_id=req.id) if pickups.can_book(req) else []
     return PickupOptions(
         appointment=appointment_out(req.pickup_appointment),
-        days=[PickupDay(date=d.date, slots=[{"time": s.time, "left": s.left} for s in d.slots]) for d in days],
+        days=[PickupDay(date=d.date, left=d.left, slots=[{"time": s.time, "left": s.left} for s in d.slots]) for d in days],
     )
 
 

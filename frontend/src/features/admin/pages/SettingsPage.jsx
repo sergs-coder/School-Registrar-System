@@ -156,7 +156,11 @@ function PickupHours() {
       const next = times.includes(hour) ? times.filter((t) => t !== hour) : [...times, hour].sort()
       return { ...s, slots: { ...s.slots, [day]: next } }
     })
-  const perWeek = Object.values(sched.slots).reduce((n, times) => n + times.length, 0) * (Number(sched.capacity) || 0)
+  const dailyLimit = Number(sched.daily_limit) || 0
+  const perWeek = Object.values(sched.slots).reduce(
+    (n, times) => n + Math.min(times.length * (Number(sched.capacity) || 0), dailyLimit),
+    0,
+  )
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -164,7 +168,12 @@ function PickupHours() {
     try {
       await save.mutateAsync({
         ...data,
-        pickup_schedule: { ...sched, capacity: Number(sched.capacity), days_ahead: Number(sched.days_ahead) },
+        pickup_schedule: {
+          ...sched,
+          capacity: Number(sched.capacity),
+          daily_limit: Number(sched.daily_limit),
+          days_ahead: Number(sched.days_ahead),
+        },
       })
       toast.success('Pick-up hours saved')
     } catch (err) {
@@ -178,7 +187,8 @@ function PickupHours() {
       <CardHeader>
         <CardTitle>Pick-up appointments</CardTitle>
         <CardDescription>
-          The hours students can book to collect their documents. Each slot is one hour. Closed days have no slots.
+          The hours students can book to collect their documents. Each slot is one hour. Once a day reaches its
+          limit, students have to choose another day. Closed days have no slots.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -227,7 +237,7 @@ function PickupHours() {
             </tbody>
           </table>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <FormField
             label="Students per slot"
             required
@@ -235,6 +245,14 @@ function PickupHours() {
             help="How many students the window can serve in one hour."
           >
             <Input type="number" min="1" max="100" inputMode="numeric" value={sched.capacity} onChange={(e) => setSched({ ...sched, capacity: e.target.value })} />
+          </FormField>
+          <FormField
+            label="Students per day"
+            required
+            error={errors['pickup_schedule.daily_limit']}
+            help="The most pick-ups in one day, across all its hours."
+          >
+            <Input type="number" min="1" max="500" inputMode="numeric" value={sched.daily_limit} onChange={(e) => setSched({ ...sched, daily_limit: e.target.value })} />
           </FormField>
           <FormField
             label="Book up to (days ahead)"

@@ -149,17 +149,22 @@ class IssuedDocument(Base):
 class PickupAppointment(TimestampMixin, Base):
     """The pick-up time a student booked. One per request; rescheduling moves it.
 
-    Each slot holds `capacity` seats (see services/pickups.py). The unique (date, time, seat) constraint
-    is what stops two students from taking the last seat at the same moment.
+    Each slot holds `capacity` seats and each day `daily_limit` seats (see services/pickups.py). The unique
+    (date, time, seat) and (date, day_seat) constraints are what stop two students from taking the last seat
+    of a slot, or of a day, at the same moment.
     """
 
     __tablename__ = "pickup_appointments"
-    __table_args__ = (UniqueConstraint("date", "time", "seat", name="uq_pickup_appointments_date_time_seat"),)
+    __table_args__ = (
+        UniqueConstraint("date", "time", "seat", name="uq_pickup_appointments_date_time_seat"),
+        UniqueConstraint("date", "day_seat", name="uq_pickup_appointments_date_day_seat"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     request_id: Mapped[int] = mapped_column(ForeignKey("requests.id", ondelete="CASCADE"), unique=True)
     date: Mapped[dt.date] = mapped_column(index=True)
     time: Mapped[str] = mapped_column(String(5))  # "HH:MM", Manila time
     seat: Mapped[int]
+    day_seat: Mapped[int]
 
     request: Mapped[Request] = relationship(back_populates="pickup_appointment")

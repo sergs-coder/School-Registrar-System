@@ -131,7 +131,7 @@ def test_admin_edits_pickup_schedule(client, db):
     admin = make_user(db, role=Role.admin)
     h = login(client, admin.email)
     current = client.get(f"{API}/admin/settings", headers=h).json()
-    assert current["pickup_schedule"]["capacity"] == 5 and current["pickup_schedule"]["slots"]["6"] == []
+    assert current["pickup_schedule"]["capacity"] == 5 and current["pickup_schedule"]["daily_limit"] == 15 and current["pickup_schedule"]["slots"]["6"] == []
     sched = {"slots": {"0": ["10:00", "09:00"]}, "capacity": 2, "days_ahead": 10}
     r = client.put(f"{API}/admin/settings", headers=h, json={**current, "pickup_schedule": sched})
     assert r.status_code == 200, r.text
@@ -139,3 +139,36 @@ def test_admin_edits_pickup_schedule(client, db):
     assert r.json()["pickup_schedule"]["slots"]["3"] == []
     bad = {**sched, "slots": {"0": ["09:30"]}}
     assert client.put(f"{API}/admin/settings", headers=h, json={**current, "pickup_schedule": bad}).status_code == 422
+
+
+def test_daily_limit_fills_the_day(client, db, student_headers, open_every_day):
+    """Once a day has `daily_limit` bookings across all its slots, every slot that day shows full."""
+    row = db.get(Setting, "pickup_schedule")
+    row.value = {**row.value, "daily_limit": 2}
+    db.commit()
+    ref, _ = ready_request(client, db, student_headers)
+    options = slots(client, student_headers, ref)
+    day, first = tomorrow_slot(options)
+    assert next(d for d in options["days"] if d["date"] == day)["left"] == 2
+    assert book(client, student_headers, ref, day, first).status_code == 200
+
+    second_h = login(client, make_user(db).email)
+    second_ref, _ = ready_request(client, db, second_h)
+    _, other_time = tomorrow_slot(slots(client, second_h, second_ref), index=3)
+    assert book(client, second_h, second_ref, day, other_time).status_code == 200
+
+    third_h = login(client, make_user(db).email)
+    third_ref, _ = ready_request(client, db, third_h)
+    full = next(d for d in slots(client, third_h, third_ref)["days"] if d["date"] == day)
+    assert full["left"] == 0 and all(s["left"] == 0 for s in full["slots"])
+    r = book(client, third_h, third_ref, day, full["slots"][5]["time"])
+    assert r.status_code == 409 and r.json()["error"]["code"] == "DAY_FULL"
+    # The next day is still open.
+    next_day = (today() + timedelta(days=2)).isoformat()
+    assert book(client, third_h, third_ref, next_day, "09:00").status_code == 200
+
+    # Moving within the full day is fine for someone already booked on it; cancelling frees a seat.
+    assert book(client, student_headers, ref, day, full["slots"][6]["time"]).status_code == 200
+    assert client.delete(f"{API}/requests/{second_ref}/pickup-appointment", headers=second_h).status_code == 200
+    assert next(d for d in slots(client, third_h, third_ref)["days"] if d["date"] == day)["left"] == 1
+    assert book(client, third_h, third_ref, day, other_time).status_code == 200

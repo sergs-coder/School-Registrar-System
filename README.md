@@ -131,9 +131,10 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
   barangays under Taguig). The server rejects a barangay that isn't in the chosen city. Addresses outside
   Metro Manila stay free text. Every courier address can include a landmark for the courier.
 - **Pick-up appointments:** once a pick-up request is Ready for Pick-up, the student books a one-hour slot from
-  the Registrar's open hours (set by admins: hours per weekday, students per slot, how many days ahead) and can
-  change or cancel it. Closed days have no slots. Each booking holds one numbered seat in its slot, and a
-  unique constraint makes sure two students can't take the last seat at once. The time is printed on the pick-up
+  the Registrar's open hours (set by admins: hours per weekday, students per slot, students per day (default
+  15), how many days ahead) and can change or cancel it. Closed days have no slots, and once a day is full the
+  student has to choose another day. Each booking holds one numbered seat in its slot and one in its day, and
+  unique constraints make sure two students can't take the last seat at once. The time is printed on the pick-up
   slip, shown on the staff request panel, and listed day by day on the dashboard.
 - **QR verification:** each slip and e-document has a random 16-character code (`issued_documents`). Anyone can
   check it at `/verify/<code>` without logging in (rate-limited). The page shows only what is printed on the
@@ -149,6 +150,11 @@ Request status colors (`--status-*`) are defined in the same file and drive ever
   - **Users:** add staff and admins, who set their own password through an emailed 72-hour link (shown on screen
     in development). Admins can also deactivate (which signs the person out everywhere), unlock or resend a
     password link. Admins can't lock themselves out or remove the last active admin.
+  - **Student import:** upload the enrollment list as CSV (`student_no, email, first_name, last_name`, plus
+    optional `middle_name, suffix, program, year_level, birthdate, contact_no`). A preview lists new rows, rows
+    skipped because the student number or email already has an account, and rows with errors. Confirming
+    creates the new accounts and emails each student a 72-hour set-password link. Re-uploading the same list
+    is safe.
   - **Reports:** volume, turnaround, on-time rate and fees for a date range, plus request and payment CSV exports.
     Exports are logged and protected against spreadsheet formula injection.
   - **Audit log:** filter by action, person, record and date; export to CSV (also logged).

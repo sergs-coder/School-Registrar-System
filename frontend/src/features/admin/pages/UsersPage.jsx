@@ -1,5 +1,5 @@
-import { KeyRound, Lock, MoreHorizontal, Pencil, Power, Search, ShieldCheck, Unlock, UserPlus, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Download, FileUp, KeyRound, Lock, MoreHorizontal, Pencil, Power, Search, ShieldCheck, Unlock, UserPlus, Users } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { FormField } from '@/components/shared/FormField'
@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Alert } from '@/components/ui/alert'
 import { Input, Select } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog, Pager, SetupLinkNotice } from '@/features/admin/components'
-import { useCreateStaff, useSendPasswordLink, useUnlockUser, useUpdateUser, useUsers } from '@/features/admin/api'
+import { useCreateStaff, useImportStudents, useSendPasswordLink, useUnlockUser, useUpdateUser, useUsers } from '@/features/admin/api'
 import { useAuth } from '@/lib/auth'
 import { apiError, errorMessage } from '@/lib/errors'
 import { cn, formatDateTime, timeAgo } from '@/lib/utils'
@@ -29,7 +30,7 @@ export function UsersPage() {
   const [role, setRole] = useState('')
   const [state, setState] = useState('')
   const [page, setPage] = useState(1)
-  const [dialog, setDialog] = useState(null) // { type: 'create' | 'edit' | 'deactivate', user? }
+  const [dialog, setDialog] = useState(null) // { type: 'create' | 'edit' | 'deactivate' | 'import', user? }
   const [link, setLink] = useState(null)
   const pageSize = 20
 
@@ -62,9 +63,14 @@ export function UsersPage() {
         title="Users"
         description="Staff and admin accounts, plus student sign-in status. Student names and numbers come from the Registrar’s records."
         actions={
-          <Button onClick={() => setDialog({ type: 'create' })}>
-            <UserPlus /> Add staff
-          </Button>
+          <>
+            <Button variant="secondary" onClick={() => setDialog({ type: 'import' })}>
+              <FileUp /> Import students
+            </Button>
+            <Button onClick={() => setDialog({ type: 'create' })}>
+              <UserPlus /> Add staff
+            </Button>
+          </>
         }
       />
 
@@ -217,6 +223,7 @@ export function UsersPage() {
         onClose={() => setDialog(null)}
         onCreated={(out) => setLink(out.setup_link)}
       />
+      <StudentImportDialog open={dialog?.type === 'import'} onClose={() => setDialog(null)} />
       <ConfirmDialog
         open={dialog?.type === 'deactivate'}
         title={`Deactivate ${dialog?.user?.display_name ?? ''}?`}
@@ -321,6 +328,179 @@ function StaffDialog({ open, user, isSelf, onClose, onCreated }) {
           </Button>
           <Button type="submit" form="staff-form" loading={pending}>
             {user ? 'Save changes' : 'Create account'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const IMPORT_TEMPLATE =
+  'student_no,email,first_name,middle_name,last_name,suffix,program,year_level,birthdate,contact_no\n' +
+  '2026-10001,juan.santos@tua.edu.ph,Juan,Reyes,Santos,,BSIT,1,2007-05-21,09171234567\n'
+const IMPORT_STATUS = {
+  create: { label: 'New', className: 'bg-success-soft text-success' },
+  skip: { label: 'Already registered', className: 'bg-surface-muted text-muted' },
+  error: { label: 'Fix needed', className: 'bg-danger-soft text-danger' },
+}
+const IMPORT_ORDER = { error: 0, skip: 1, create: 2 }
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
+function downloadTemplate() {
+  const url = URL.createObjectURL(new Blob([IMPORT_TEMPLATE], { type: 'text/csv' }))
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'student-import-template.csv' })
+  document.body.append(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
+/** Upload an enrollment list, check the preview, then create the accounts. */
+function StudentImportDialog({ open, onClose }) {
+  const importer = useImportStudents()
+  const inputRef = useRef(null)
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!open) return
+    setFile(null)
+    setPreview(null)
+    setError(null)
+  }, [open])
+
+  async function choose(f) {
+    if (!f) return
+    setFile(f)
+    setPreview(null)
+    setError(null)
+    try {
+      setPreview(await importer.mutateAsync({ file: f, confirm: false }))
+    } catch (err) {
+      setError(errorMessage(err))
+    }
+  }
+
+  async function confirm() {
+    try {
+      const out = await importer.mutateAsync({ file, confirm: true })
+      toast.success(`${plural(out.to_create, 'student account', 'student accounts')} created. Each student was emailed a link to set a password.`)
+      onClose()
+    } catch (err) {
+      setError(errorMessage(err))
+    }
+  }
+
+  // Problems first, so the admin sees what needs fixing without scrolling.
+  const rows = preview ? [...preview.rows].sort((a, b) => IMPORT_ORDER[a.status] - IMPORT_ORDER[b.status] || a.line - b.line) : []
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogTitle>Import students</DialogTitle>
+        <DialogDescription>
+          Upload the enrollment list as a CSV file. Each new student gets an email with a link to set their password (valid
+          for 72 hours). Students who already have an account are skipped, so you can upload the same list again.
+        </DialogDescription>
+
+        <div className="mt-5 space-y-4">
+          <div className="rounded-xl border border-border bg-surface-muted/50 p-4 text-sm">
+            <p className="text-fg">
+              Required columns: <code className="font-mono text-xs">student_no, email, first_name, last_name</code>
+            </p>
+            <p className="mt-1 text-muted">
+              Optional: <code className="font-mono text-xs">middle_name, suffix, program, year_level, birthdate, contact_no</code>.
+              Program is the code from the catalog (for example BSIT). Write birth dates as YYYY-MM-DD.
+            </p>
+            <Button variant="ghost" size="sm" className="-ml-2 mt-2" onClick={downloadTemplate}>
+              <Download /> Download template
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={(e) => {
+                choose(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+            <Button variant="secondary" loading={importer.isPending && !preview} onClick={() => inputRef.current?.click()}>
+              <FileUp /> {file ? 'Choose another file' : 'Choose CSV file'}
+            </Button>
+            {file && <span className="min-w-0 truncate text-sm text-muted">{file.name}</span>}
+          </div>
+
+          {error && (
+            <Alert tone="danger" title="Couldn’t import this file">
+              {error}
+            </Alert>
+          )}
+
+          {preview && (
+            <>
+              <p className="text-sm text-fg" role="status">
+                <strong>{plural(preview.to_create, 'new account', 'new accounts')}</strong> · {preview.skipped} already
+                registered · {plural(preview.errors, 'row needs', 'rows need')} fixing
+              </p>
+              {preview.errors > 0 && (
+                <Alert tone="warning" title="Some rows have problems">
+                  You can create the other accounts now, then fix those rows in the file and upload it again.
+                </Alert>
+              )}
+              {rows.length > 0 && (
+                <div className="max-h-72 overflow-auto rounded-xl border border-border">
+                  <table className="w-full min-w-[560px] text-sm">
+                    <caption className="sr-only">Rows in the file</caption>
+                    <thead className="sticky top-0 border-b border-border bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                      <tr>
+                        <th scope="col" className="px-3 py-2">Line</th>
+                        <th scope="col" className="px-3 py-2">Student</th>
+                        <th scope="col" className="px-3 py-2">Result</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {rows.map((r) => (
+                        <tr key={r.line}>
+                          <td className="px-3 py-2 align-top font-mono text-xs text-muted">{r.line}</td>
+                          <td className="px-3 py-2 align-top">
+                            <p className="font-medium text-fg">{r.name || '—'}</p>
+                            <p className="text-xs text-muted">
+                              <span className="font-mono">{r.student_no || '—'}</span> · {r.email || '—'}
+                            </p>
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', IMPORT_STATUS[r.status].className)}>
+                              {IMPORT_STATUS[r.status].label}
+                            </span>
+                            {r.messages.map((m) => (
+                              <p key={m} className="mt-1 text-xs text-muted">
+                                {m}
+                              </p>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={!preview?.to_create} loading={importer.isPending && Boolean(preview)} onClick={confirm}>
+            {preview?.to_create ? `Create ${plural(preview.to_create, 'account', 'accounts')}` : 'Create accounts'}
           </Button>
         </DialogFooter>
       </DialogContent>
