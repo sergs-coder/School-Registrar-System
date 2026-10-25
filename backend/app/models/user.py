@@ -127,7 +127,8 @@ class PasswordResetToken(Base):
 
 
 class AccountRequest(TimestampMixin, Base):
-    """An alumnus or former student asking for portal access (no account, or lost their university mailbox).
+    """Someone without a working account asking for portal access: a new or current student the Registrar
+    hasn't set up yet, or an alumnus / former student (no account, or lost their university mailbox).
 
     Staff check the details and the uploaded ID against the Registrar's records. Approving links the request
     to the existing student record (or creates one) and emails a set-password link to `email`.

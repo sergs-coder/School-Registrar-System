@@ -368,7 +368,7 @@ def seed_requests(db: Session, students: list[User], staff: list[User]) -> int:
 
 def seed_pickups_and_access(db: Session, students: list[User]) -> None:
     """Pick-up times for some ready requests (not the demo student's, so the demo can book one) and a
-    couple of alumni access requests waiting for review."""
+    few access requests waiting for review (two alumni, one new student)."""
     db.flush()
     ready = db.execute(
         select(Request).where(Request.status == S.ready_for_pickup, Request.delivery_method == DeliveryMethod.pickup,
@@ -380,17 +380,20 @@ def seed_pickups_and_access(db: Session, students: list[User]) -> None:
 
     graduate = next(u.student for u in students[1:] if u.student.standing == Standing.graduated)
     storage = get_storage()
-    for st_no, first, middle, last, birthdate, email, program, year in (
+    for st_no, first, middle, last, birthdate, email, program, year, standing in (
         (graduate.student_no, graduate.first_name, graduate.middle_name, graduate.last_name, graduate.birthdate,
          f"{graduate.first_name.lower()}.{graduate.last_name.lower()}@gmail.com".replace(" ", ""),
-         graduate.program.code if graduate.program else "BSIT", 2021),
+         graduate.program.code if graduate.program else "BSIT", 2021, Standing.graduated),
         ("2009-04512", "Ramon", "Cruz", "Villanueva", date(1990, 3, 8), "ramon.villanueva@yahoo.com",
-         "BS Accountancy", 2013),
+         "BS Accountancy", 2013, Standing.graduated),
+        # A freshman enrolled after the Registrar's import, so no account yet.
+        (f"{NOW.year}-80417", "Kyla", "Ramos", "Mercado", date(NOW.year - 18, 6, 2), "kyla.mercado@tua.edu.ph",
+         "BSN", NOW.year, Standing.enrolled),
     ):
         db.add(AccountRequest(
             student_no=st_no, first_name=first, middle_name=middle, last_name=last,
             birthdate=birthdate or date(1999, 1, 1), email=email, contact_no="09171234567", program=program,
-            last_year_attended=year, standing=Standing.graduated, id_filename="valid-id.pdf",
+            last_year_attended=year, standing=standing, id_filename="valid-id.pdf",
             id_storage_key=storage.put(sample_pdf("Valid ID")), id_mime_type="application/pdf",
             created_at=NOW - timedelta(hours=rng.randint(2, 30)),
         ))

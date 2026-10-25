@@ -9,7 +9,8 @@ STUDENT_NO = r"^[0-9A-Za-z][0-9A-Za-z-]{3,19}$"
 
 
 class AccountRequestIn(BaseModel):
-    """The public alumni / former student access form (sent as multipart along with the ID file)."""
+    """The public "Request access" form for anyone without an account: new or current students, alumni and
+    former students (sent as multipart along with the ID file)."""
 
     student_no: str = Field(pattern=STUDENT_NO)
     first_name: str = Field(min_length=1, max_length=100)
@@ -20,7 +21,7 @@ class AccountRequestIn(BaseModel):
     contact_no: str | None = Field(default=None, pattern=r"^(\+63|0)9\d{9}$")
     program: str = Field(min_length=2, max_length=200)
     last_year_attended: int = Field(ge=1950)
-    standing: Literal[Standing.graduated, Standing.inactive]
+    standing: Literal[Standing.enrolled, Standing.graduated, Standing.inactive]
 
     @field_validator("first_name", "middle_name", "last_name", "program", "student_no", mode="before")
     @classmethod

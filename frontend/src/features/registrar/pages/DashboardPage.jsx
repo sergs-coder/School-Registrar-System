@@ -4,10 +4,10 @@ import {
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
-  GraduationCap,
   Inbox,
   PackageCheck,
   UserCheck,
+  UserPlus,
   Wallet,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -53,8 +53,8 @@ export function DashboardPage() {
       {data?.account_requests_pending > 0 && (
         <Alert
           tone="info"
-          icon={GraduationCap}
-          title={`${data.account_requests_pending} alumni / former student access ${data.account_requests_pending === 1 ? 'request' : 'requests'} to review`}
+          icon={UserPlus}
+          title={`${data.account_requests_pending} access ${data.account_requests_pending === 1 ? 'request' : 'requests'} to review`}
           action={
             <Button asChild size="sm" variant="secondary">
               <Link to="/registrar/account-requests">Review</Link>

@@ -104,11 +104,15 @@ tracking emails use the same colors (`backend/app/services/email_templates.py`).
   university mailbox). It receives updates only after they confirm it through a one-time link valid for 24
   hours; changing it needs a new confirmation. Without `SMTP_HOST`, emails go to the backend log; Docker
   Compose routes them to Mailpit.
-- **Alumni and former students:** anyone without an account (or who lost their university mailbox) can ask for
-  access at `/alumni-access` with their student number, name, birth date, program, an email address and a photo
-  of a valid ID. Staff review it under **Alumni access**, which compares it with the student record on file.
-  Approving links it to that record (or creates one) and emails a 72-hour set-password link. The address becomes
-  the student's confirmed personal email, so they can sign in and reset their password with it.
+- **Request access:** anyone without a working account can ask for access at `/request-access` ("No account
+  yet?" on the sign-in page): new or current students the Registrar hasn't imported yet, alumni, and former
+  students who lost their university mailbox. They give their student number, name, birth date, program, an
+  email address and a photo of an ID (school ID or registration form for current students). New students are
+  first reminded to check their TUA email for a setup link or use Forgot password. Staff review requests under
+  **Access requests**, which compares each with the student record on file. Approving links it to that record
+  (or creates one) and emails a 72-hour set-password link. An address other than the account's login becomes
+  the student's confirmed personal email, so they can sign in and reset their password with it. The old
+  `/alumni-access` address redirects to the new one.
 - **Approval emails** state the amount due and the payment instructions.
 - **Reminders:** checked every hour (and on demand from admin Settings). A request waiting on the student for
   more than 2 days (correction, payment with no receipt uploaded, or pick-up) gets an "Action needed" reminder,

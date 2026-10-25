@@ -357,7 +357,7 @@ def list_users(
 @router.post("/users", response_model=UserActionOut, status_code=status.HTTP_201_CREATED)
 def create_staff(body: StaffCreate, http: HttpRequest, tasks: BackgroundTasks, user: User = Depends(require_admin),
                  db: Session = Depends(get_db)):
-    """Creates a staff or admin account. Students come in through the CSV import or alumni access."""
+    """Creates a staff or admin account. Students come in through the CSV import or a request-access form."""
     email = body.email.lower()
     if db.execute(select(User.id).where(func.lower(User.email) == email)).first():
         raise _conflict("email", "An account with this email already exists.")

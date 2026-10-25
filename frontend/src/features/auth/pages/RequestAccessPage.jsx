@@ -17,12 +17,34 @@ import { cn } from '@/lib/utils'
 const ID_SPEC = { label: 'Valid ID', accept: ['jpg', 'png', 'pdf'], max_mb: 5 }
 const THIS_YEAR = new Date().getFullYear()
 const STANDINGS = [
+  { value: 'enrolled', title: 'I’m a new or current student', text: 'Enrolled at TUA this school year.' },
   { value: 'graduated', title: 'I graduated', text: 'Alumni of Trinity University of Asia.' },
   { value: 'inactive', title: 'I studied here but didn’t graduate', text: 'Transferred, stopped or on leave.' },
 ]
 
+// Wording that depends on who is asking.
+const COPY = {
+  enrolled: {
+    studentNo: 'As printed on your school ID or registration form.',
+    lastName: 'As registered with the school.',
+    year: 'Year you enrolled',
+    email: 'Use your TUA email if you already have one. We’ll send your sign-in link and request updates here.',
+    idLabel: 'School ID or registration form',
+    id:'Your TUA school ID, or your registration form (COR) if your ID isn’t ready yet. JPG, PNG or PDF, up to 5 MB.',
+  },
+  graduated: {
+    studentNo: 'As printed on your old school ID or records.',
+    lastName: 'Your name while you were a student.',
+    year: 'Year graduated',
+    email: 'Use an address you check. We’ll send your sign-in link and request updates here.',
+    idLabel: 'Valid ID',
+    id:'A government or old school ID with your photo and name. JPG, PNG or PDF, up to 5 MB.',
+  },
+}
+COPY.inactive = { ...COPY.graduated, year: 'Last year attended' }
+
 const schema = z.object({
-  standing: z.enum(['graduated', 'inactive'], { error: 'Choose one.' }),
+  standing: z.enum(['enrolled', 'graduated', 'inactive'], { error: 'Choose one.' }),
   student_no: z.string().trim().regex(/^[0-9A-Za-z][0-9A-Za-z-]{3,19}$/, 'Enter your student number, e.g. 2015-00123.'),
   first_name: z.string().trim().min(1, 'Enter your first name.').max(100),
   middle_name: z.string().trim().max(100).optional(),
@@ -42,8 +64,9 @@ const schema = z.object({
     .optional(),
 })
 
-/** Public form for alumni and former students who have no portal account or lost their school email. */
-export function AlumniAccessPage() {
+/** Public form for anyone without a working account: new or current students the Registrar hasn't set up yet,
+ * and alumni or former students (no account, or lost their school email). */
+export function RequestAccessPage() {
   const [file, setFile] = useState(null)
   const [fileError, setFileError] = useState(null)
   const [formError, setFormError] = useState(null)
@@ -54,13 +77,14 @@ export function AlumniAccessPage() {
     watch,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(schema), defaultValues: { standing: 'graduated' } })
+  } = useForm({ resolver: zodResolver(schema), defaultValues: { standing: 'enrolled' } })
   const standing = watch('standing')
+  const copy = COPY[standing] ?? COPY.enrolled
 
   async function onSubmit(values) {
     setFormError(null)
     if (!file) {
-      setFileError('Upload a photo or scan of a valid ID.')
+      setFileError(`Upload a photo or scan of your ${copy.idLabel.toLowerCase()}.`)
       return
     }
     const form = new FormData()
@@ -92,10 +116,10 @@ export function AlumniAccessPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <BackToLogin />
-        <h1 className="pt-2 text-[28px] font-semibold leading-9 tracking-tight text-fg">Alumni &amp; former students</h1>
+        <h1 className="pt-2 text-[28px] font-semibold leading-9 tracking-tight text-fg">Request access</h1>
         <p className="text-[15px] text-muted">
-          No portal account, or can’t use your TUA email anymore? Tell us who you are. The Registrar’s Office will check
-          your details and email you a link to set your password.
+          No portal account yet, or can’t use your TUA email anymore? Tell us who you are. The Registrar’s Office will
+          check your details and email you a link to set your password.
         </p>
       </div>
 
@@ -119,9 +143,25 @@ export function AlumniAccessPage() {
               </span>
             </label>
           ))}
+          {errors.standing && (
+            <p role="alert" className="text-[13px] font-medium text-danger">
+              {errors.standing.message}
+            </p>
+          )}
         </fieldset>
 
-        <FormField label="Student number" required error={errors.student_no?.message} help="As printed on your old school ID or records.">
+        {standing === 'enrolled' && (
+          <Alert tone="info" title="Recently enrolled? You may already have an account">
+            The Registrar sets up accounts for newly enrolled students. Check your TUA email for a link to set your password,
+            or use{' '}
+            <Link to="/forgot-password" className="font-medium text-link hover:underline">
+              Forgot password
+            </Link>{' '}
+            with your student number. Send this form only if neither works.
+          </Alert>
+        )}
+
+        <FormField label="Student number" required error={errors.student_no?.message} help={copy.studentNo}>
           <Input autoComplete="off" placeholder="2015-00123" {...register('student_no')} />
         </FormField>
         <FormField label="First name" required error={errors.first_name?.message}>
@@ -130,19 +170,20 @@ export function AlumniAccessPage() {
         <FormField label="Middle name" error={errors.middle_name?.message}>
           <Input autoComplete="additional-name" {...register('middle_name')} />
         </FormField>
-        <FormField label="Last name" required error={errors.last_name?.message} help="Your name while you were a student.">
+        <FormField label="Last name" required error={errors.last_name?.message} help={copy.lastName}>
           <Input autoComplete="family-name" {...register('last_name')} />
         </FormField>
         <div className="grid gap-5 sm:grid-cols-2">
           <FormField label="Date of birth" required error={errors.birthdate?.message}>
             <Input type="date" autoComplete="bday" {...register('birthdate')} />
           </FormField>
-          <FormField
-            label={standing === 'graduated' ? 'Year graduated' : 'Last year attended'}
-            required
-            error={errors.last_year_attended?.message}
-          >
-            <Input inputMode="numeric" maxLength={4} placeholder="2019" {...register('last_year_attended')} />
+          <FormField label={copy.year} required error={errors.last_year_attended?.message}>
+            <Input
+              inputMode="numeric"
+              maxLength={4}
+              placeholder={standing === 'enrolled' ? String(THIS_YEAR) : '2019'}
+              {...register('last_year_attended')}
+            />
           </FormField>
         </div>
         <FormField label="Program / course" required error={errors.program?.message} help="e.g. BS Information Technology">
@@ -152,7 +193,7 @@ export function AlumniAccessPage() {
           label="Email"
           required
           error={errors.email?.message}
-          help="Use an address you check. We’ll send your sign-in link and request updates here."
+          help={copy.email}
         >
           <Input type="email" autoComplete="email" {...register('email')} />
         </FormField>
@@ -161,9 +202,9 @@ export function AlumniAccessPage() {
         </FormField>
         <div className="space-y-1.5">
           <p className="text-sm font-medium text-fg">
-            Valid ID <span className="text-danger" aria-hidden="true">*</span>
+            {copy.idLabel} <span className="text-danger" aria-hidden="true">*</span>
           </p>
-          <p className="text-[13px] text-muted">A government or old school ID with your photo and name. JPG, PNG or PDF, up to 5 MB.</p>
+          <p className="text-[13px] text-muted">{copy.id}</p>
           <FileDropzone
             spec={ID_SPEC}
             file={file && { original_filename: file.name, size_bytes: file.size }}

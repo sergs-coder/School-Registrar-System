@@ -66,6 +66,44 @@ def test_new_alumnus_gets_an_account(client, db, mail):
     assert again.status_code == 409 and again.json()["error"]["code"] == "ALREADY_REVIEWED"
 
 
+def test_new_student_not_yet_imported_gets_an_account(client, db, mail):
+    """A freshman the Registrar hasn't set up yet asks for access with their school email."""
+    year = str(date.today().year)
+    r = submit(client, student_no=f"{year}-80417", email="kyla.mercado@tua.edu.ph", standing="enrolled",
+               last_year_attended=year, birthdate="2007-06-02")
+    assert r.status_code == 201, r.text
+    _, h = staff_headers(client, db)
+    pending = client.get(f"{API}/staff/account-requests", headers=h).json()
+    assert pending[0]["standing"] == "enrolled" and pending[0]["record"] is None
+
+    r = client.post(f"{API}/staff/account-requests/{pending[0]['id']}/approve", headers=h)
+    assert r.status_code == 200, r.text
+    account = db.query(User).filter_by(student_no=f"{year}-80417").one()
+    assert account.email == "kyla.mercado@tua.edu.ph" and account.student.standing == Standing.enrolled
+    assert account.student.personal_email is None  # the school email is the login, not a personal address
+    set_password(client, r.json()["setup_link"])
+    login(client, "kyla.mercado@tua.edu.ph", NEW_PASSWORD)
+
+
+def test_imported_student_who_asks_anyway_gets_a_setup_link(client, db, mail):
+    """Already imported (say the welcome email got lost): approving just sends a fresh set-password link."""
+    student = make_user(db, email="paolo.reyes@tua.edu.ph", student_no="2026-10002")
+    r = submit(client, student_no="2026-10002", first_name="Test", last_name=student.student.last_name,
+               email="Paolo.Reyes@tua.edu.ph", standing="enrolled", last_year_attended=str(date.today().year))
+    assert r.status_code == 201, r.text
+    _, h = staff_headers(client, db)
+    pending = client.get(f"{API}/staff/account-requests", headers=h).json()
+    assert pending[0]["record"]["login_email"] == "paolo.reyes@tua.edu.ph" and not pending[0]["email_in_use"]
+
+    r = client.post(f"{API}/staff/account-requests/{pending[0]['id']}/approve", headers=h)
+    assert r.status_code == 200, r.text
+    assert db.query(User).filter_by(student_no="2026-10002").count() == 1
+    db.refresh(student.student)
+    assert student.student.personal_email is None
+    set_password(client, r.json()["setup_link"])
+    login(client, "2026-10002", NEW_PASSWORD)
+
+
 def test_existing_student_gets_personal_email_access(client, db, mail):
     old = make_user(db, student_no="2012-00999", email="old.mailbox@tua.edu.ph")
     old.student.first_name, old.student.last_name, old.student.birthdate = "Jose", "Rizal", date(1994, 6, 19)
@@ -112,9 +150,11 @@ def test_email_in_use_and_reject(client, db, mail):
 
 
 def test_form_validation_and_access(client, db, student_headers, mail):
-    r = submit(client, last_year_attended=str(date.today().year + 1), birthdate="2020-01-01", standing="enrolled")
+    r = submit(client, last_year_attended=str(date.today().year + 1), birthdate="2020-01-01", standing="faculty")
     assert r.status_code == 422
-    assert {d["field"] for d in r.json()["error"]["details"]} == {"last_year_attended", "birthdate", "standing"}
+    details = {d["field"]: d["message"] for d in r.json()["error"]["details"]}
+    assert details.keys() == {"last_year_attended", "birthdate", "standing"}
+    assert details["standing"] == "Choose one of the options."
     assert submit(client, file=("id.pdf", b"not a pdf", "application/pdf")).status_code == 415
     assert db.query(AccountRequest).count() == 0
 

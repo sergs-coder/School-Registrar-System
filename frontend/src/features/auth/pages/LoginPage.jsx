@@ -95,8 +95,8 @@ export function LoginPage() {
 
       <div className="space-y-2 text-center text-sm text-muted">
         <p>
-          Alumni or former student without an account?{' '}
-          <Link to="/alumni-access" className="font-medium text-link hover:underline">
+          No account yet?{' '}
+          <Link to="/request-access" className="font-medium text-link hover:underline">
             Request access
           </Link>
         </p>

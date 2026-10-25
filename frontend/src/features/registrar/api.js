@@ -115,7 +115,7 @@ export function usePickupsOn(date) {
   })
 }
 
-// ---------- alumni / former student access requests ----------
+// ---------- access requests (new students, alumni, former students) ----------
 
 export function useAccountRequests(status) {
   return useQuery({

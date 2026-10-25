@@ -1,4 +1,5 @@
-"""Alumni / former student access: a public request form, reviewed by Registrar staff.
+"""Request access: a public form for anyone without an account (new or current students, alumni and former
+students), reviewed by Registrar staff.
 
 Approving links the request to the student record with the same student number (or creates one when there
 is none), and emails a one-time set-password link to the address on the request. That address becomes the
@@ -24,7 +25,7 @@ from app.services.audit import audit
 from app.services.email import send_email
 from app.services.uploads import safe_filename, validate_upload
 
-router = APIRouter(tags=["alumni access"])
+router = APIRouter(tags=["access requests"])
 SETUP_LINK_HOURS = 72
 SIGN_OFF = "\n\n— Office of the University Registrar, Trinity University of Asia"
 
@@ -55,7 +56,9 @@ async def create_account_request(
             last_year_attended=last_year_attended, standing=standing,
         )
     except ValidationError as exc:
-        details = [{"field": ".".join(str(p) for p in e["loc"]), "message": e["msg"].removeprefix("Value error, ")}
+        details = [{"field": ".".join(str(p) for p in e["loc"]),
+                    "message": "Choose one of the options." if e["loc"] == ("standing",)
+                    else e["msg"].removeprefix("Value error, ")}
                    for e in exc.errors()]
         raise AppError("VALIDATION_ERROR", "Some fields are invalid.", 422, details) from None
     data = await id_file.read()

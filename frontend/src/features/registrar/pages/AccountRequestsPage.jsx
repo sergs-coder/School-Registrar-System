@@ -1,4 +1,4 @@
-import { Check, Eye, GraduationCap, TriangleAlert, X } from 'lucide-react'
+import { Check, Eye, TriangleAlert, UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -19,9 +19,11 @@ const TABS = [
   { key: 'approved', label: 'Approved' },
   { key: 'rejected', label: 'Rejected' },
 ]
-const STANDING = { enrolled: 'Enrolled', graduated: 'Graduate', inactive: 'Former student (did not graduate)' }
+const STANDING = { enrolled: 'New / current student', graduated: 'Graduate', inactive: 'Former student (did not graduate)' }
+const YEAR_LABEL = { enrolled: 'Year enrolled', graduated: 'Year graduated', inactive: 'Last year attended' }
 
-/** Alumni and former students asking for portal access; staff check them against the records. */
+/** People without a working account asking for portal access (new or current students, alumni, former
+ * students); staff check them against the records. */
 export function AccountRequestsPage() {
   const [tab, setTab] = useState('pending')
   const { data, isLoading, error, refetch } = useAccountRequests(tab)
@@ -29,8 +31,8 @@ export function AccountRequestsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Alumni access"
-        description="Alumni and former students who asked for portal access. Check their details and ID against your records before approving."
+        title="Access requests"
+        description="New or current students, alumni and former students who asked for portal access. Check their details and ID against your records before approving."
       />
       <div role="tablist" aria-label="Status" className="inline-flex rounded-lg border border-border bg-surface p-1">
         {TABS.map((t) => (
@@ -59,9 +61,9 @@ export function AccountRequestsPage() {
         </div>
       ) : data.length === 0 ? (
         <EmptyState
-          icon={GraduationCap}
+          icon={UserPlus}
           title={tab === 'pending' ? 'No requests to review' : `No ${tab} requests yet`}
-          description={tab === 'pending' ? 'New requests from the “Alumni & former students” page will show up here.' : undefined}
+          description={tab === 'pending' ? 'New requests from the “Request access” page will show up here.' : undefined}
         />
       ) : (
         <ul className="space-y-4">
@@ -115,7 +117,7 @@ function RequestCard({ request: r }) {
             items={[
               { label: 'Date of birth', value: formatDate(r.birthdate) },
               { label: 'Program', value: r.program },
-              { label: r.standing === 'graduated' ? 'Year graduated' : 'Last year attended', value: String(r.last_year_attended) },
+              { label: YEAR_LABEL[r.standing], value: String(r.last_year_attended) },
               { label: 'Email', value: r.email },
               { label: 'Mobile', value: r.contact_no },
             ]}
@@ -193,7 +195,10 @@ function RecordCheck({ request: r }) {
         </div>
       ) : (
         <p className="text-sm text-muted">
-          No portal record has this student number. Check your paper or archive records.
+          No portal record has this student number.{' '}
+          {r.standing === 'enrolled'
+            ? 'Check it against this term’s enrollment list.'
+            : 'Check your paper or archive records.'}
           {r.status === 'pending' && ' Approving creates a new student account.'}
         </p>
       )}

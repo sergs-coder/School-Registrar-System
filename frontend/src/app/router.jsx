@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { RegistrarLayout } from '@/components/layout/RegistrarLayout'
@@ -32,7 +32,7 @@ const pages = {
   dashboard: page(() => import('@/features/registrar/pages/DashboardPage'), 'DashboardPage'),
   queue: page(() => import('@/features/registrar/pages/QueuePage'), 'QueuePage'),
   accountRequests: page(() => import('@/features/registrar/pages/AccountRequestsPage'), 'AccountRequestsPage'),
-  alumniAccess: page(() => import('@/features/auth/pages/AlumniAccessPage'), 'AlumniAccessPage'),
+  requestAccess: page(() => import('@/features/auth/pages/RequestAccessPage'), 'RequestAccessPage'),
   documentTypes: page(() => import('@/features/admin/pages/DocumentTypesPage'), 'DocumentTypesPage'),
   users: page(() => import('@/features/admin/pages/UsersPage'), 'UsersPage'),
   reports: page(() => import('@/features/admin/pages/ReportsPage'), 'ReportsPage'),
@@ -54,7 +54,9 @@ export const router = createBrowserRouter([
               { path: '/login', lazy: pages.login },
               { path: '/forgot-password', lazy: pages.forgot },
               { path: '/reset-password', lazy: pages.reset },
-              { path: '/alumni-access', lazy: pages.alumniAccess },
+              { path: '/request-access', lazy: pages.requestAccess },
+              // Old address from when the form was for alumni only; keeps bookmarks and shared links working.
+              { path: '/alumni-access', element: <Navigate to="/request-access" replace /> },
             ],
           },
         ],

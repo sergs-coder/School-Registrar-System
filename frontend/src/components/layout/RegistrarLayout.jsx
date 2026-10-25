@@ -2,12 +2,12 @@ import {
   BarChart3,
   ClipboardList,
   FileCog,
-  GraduationCap,
   LayoutDashboard,
   Menu,
   PackageCheck,
   ScrollText,
   Settings,
+  UserPlus,
   Users,
   Wallet,
 } from 'lucide-react'
@@ -31,7 +31,7 @@ const SECTIONS = [
       { to: '/registrar/requests', label: 'Request queue', icon: ClipboardList },
       { to: '/registrar/requests?tab=payment', tab: 'payment', label: 'Payments', icon: Wallet },
       { to: '/registrar/requests?tab=release', tab: 'release', label: 'Releases', icon: PackageCheck },
-      { to: '/registrar/account-requests', label: 'Alumni access', icon: GraduationCap },
+      { to: '/registrar/account-requests', label: 'Access requests', icon: UserPlus },
     ],
   },
   {

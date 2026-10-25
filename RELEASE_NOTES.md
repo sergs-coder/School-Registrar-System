@@ -4,6 +4,14 @@ TUA Student Request Portal (SRM System). Newest changes first.
 
 ## 2026-10-25 — Student import, daily pick-up limit and processing times
 
+- **New students can request access:** the sign-in page now says "No account yet? Request access", and the
+  form has a third choice, "I'm a new or current student" (for students the Registrar hasn't set up yet).
+  It first reminds them to check their TUA email for a setup link or use Forgot password, and asks for a
+  school ID or registration form. Staff see these requests, labelled "New / current student", under the
+  renamed **Access requests** page. The old alumni address still works.
+- **Fix:** if the access form was rejected because of the "Which describes you?" answer, the error is now
+  shown under the choices instead of the form silently doing nothing.
+
 - **Simpler status colors:** request statuses now use five colors by what the request needs:
   **yellow** when the student must act (needs correction, awaiting payment, ready for pick-up),
   **light green** while the Registrar works on it, **green** when released, **red** when rejected and
