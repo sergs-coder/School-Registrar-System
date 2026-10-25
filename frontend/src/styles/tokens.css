@@ -72,6 +72,14 @@
   --state-rejected: #dc2626; --state-rejected-fg: #991b1b; /* red: not approved */
   --state-neutral: #94a3b8;  --state-neutral-fg: #475569;  /* gray: draft or cancelled */
 
+  /* Processing-time meter: block 1 to 5, quick to longer (green, yellow-green, yellow, yellow-red, red).
+     Block count carries the same information, so the color ramp never stands alone. */
+  --meter-1: #22c55e;
+  --meter-2: #84cc16;
+  --meter-3: #eab308;
+  --meter-4: #f97316;
+  --meter-5: #dc2626;
+
   /* Request status colors — used by badges, timeline, stepper and charts. Each points at a state. */
   --status-draft: var(--state-neutral);              --status-draft-fg: var(--state-neutral-fg);
   --status-submitted: var(--state-ongoing);          --status-submitted-fg: var(--state-ongoing-fg);

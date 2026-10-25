@@ -17,7 +17,7 @@ TUA Student Request Portal (SRM System). Newest changes first.
 - **How long each document takes:** the New request page now has a chart of the working days each
   document takes from approval to release, fastest first, with the date it would be ready if approved
   today (weekends and closed days skipped). Each document has a 5-block meter (one block ≈ 2 working
-  days) colored by speed: green up to 3 days, yellow 4–5 days, red 6 or more. It follows the category
+  days) whose blocks run green, yellow-green, yellow, yellow-red, red. It follows the category
   tabs and search, and each row opens that document's request form. It works on phones and computers,
   in light and dark mode.
 

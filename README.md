@@ -136,7 +136,7 @@ tracking emails use the same colors (`backend/app/services/email_templates.py`).
 - **Processing times:** the New request page charts each document's working days from approval to release,
   with the date it would be ready if approved today (same working-day and closed-day rules as the workflow;
   `ready_if_approved_today` on `GET /document-types`). Each row is a 5-block meter (one block ≈ 2 working
-  days, 10+ fills it) colored by speed tier: green ≤ 3 days, yellow 4–5, red 6+ (the `--state-*` colors).
+  days, 10+ fills it); block 1–5 run green, yellow-green, yellow, yellow-red, red (`--meter-1..5`).
   Plain HTML, so students don't download a chart library; rows re-flow on phones.
 - **Pick-up appointments:** once a pick-up request is Ready for Pick-up, the student books a one-hour slot from
   the Registrar's open hours (set by admins: hours per weekday, students per slot, students per day (default
