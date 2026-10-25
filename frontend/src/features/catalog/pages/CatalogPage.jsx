@@ -99,7 +99,7 @@ export function CatalogPage() {
       )}
 
       {/* Follows the tab and search above, like the cards. */}
-      {data && <TurnaroundChart docs={filtered} allDocs={data} />}
+      {data && <TurnaroundChart docs={filtered} />}
     </div>
   )
 }

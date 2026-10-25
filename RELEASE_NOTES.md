@@ -16,8 +16,10 @@ TUA Student Request Portal (SRM System). Newest changes first.
 
 - **How long each document takes:** the New request page now has a chart of the working days each
   document takes from approval to release, fastest first, with the date it would be ready if approved
-  today (weekends and closed days skipped). It follows the category tabs and search, and each row opens
-  that document's request form. It works on phones and computers, in light and dark mode.
+  today (weekends and closed days skipped). Each document has a 5-block meter (one block ≈ 2 working
+  days) colored by speed: green up to 3 days, yellow 4–5 days, red 6 or more. It follows the category
+  tabs and search, and each row opens that document's request form. It works on phones and computers,
+  in light and dark mode.
 
 - **Import students:** admins can upload the enrollment list as a CSV file (Users → **Import students**) to
   create accounts for new students. The portal first shows a preview: which rows are new, which students
