@@ -9,7 +9,9 @@ TUA Student Request Portal (SRM System). Newest changes first.
   **light green** while the Registrar works on it, **green** when released, **red** when rejected and
   **gray** for drafts and cancelled requests. This applies to badges, the progress tracker, the timeline,
   the staff dashboard and the tracking emails. Labels and icons stay, so color is never the only cue, and
-  the colors were checked for color-blind readers in light and dark mode.
+  the colors were checked for color-blind readers in light and dark mode. While the Registrar is
+  working on a request, its current step pulses softly and the Processing icon turns; steps waiting on
+  the student stay still. Both animations switch off when the device asks for reduced motion.
 
 - **How long each document takes:** the New request page now has a chart of the working days each
   document takes from approval to release, fastest first, with the date it would be ready if approved

@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react'
 
-import { stageIndex, stagesFor } from '@/lib/status'
+import { IN_PROGRESS, stageIndex, stagesFor } from '@/lib/status'
 import { cn } from '@/lib/utils'
 
 /** Student-facing progress through simplified stages. */
@@ -34,6 +34,10 @@ export function ProgressStepper({ status, requiresPayment = true, history, compa
             )}
             {/* Done steps are green; the current one wears its status color (yellow: your turn, light green: the
                 Registrar is on it, red/gray: stopped). */}
+            {/* Pulses behind the current step while the Registrar is on it; a step waiting on the student stays still. */}
+            {active && IN_PROGRESS.includes(status) && (
+              <span data-status={status} className="status-pulse left-[calc(50%-11px)] top-0 size-[22px]" aria-hidden="true" />
+            )}
             <span
               data-status={active ? status : undefined}
               className={cn(
