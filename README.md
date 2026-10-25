@@ -32,6 +32,12 @@ npm run dev
 
 The Vite dev server proxies `/api` to the backend, so the httpOnly refresh cookie works without CORS setup.
 
+Already have a database from an earlier version? Bring it up to date without losing data:
+
+```bash
+cd backend && .venv/bin/alembic upgrade head
+```
+
 ## Quick start (Docker Compose)
 
 ```bash
@@ -62,8 +68,20 @@ takes about a minute). Emails are written to the service log instead of being se
 
 Juan has one request in every status and sees the Data Privacy consent notice on first login.
 The seed adds 24 more students (password `Student@2026`), 11 document types, holidays, about 80 requests,
-a few booked pick-up times for today and two alumni access requests waiting for review.
+a few booked pick-up times for today and three access requests waiting for review (two alumni, one new student).
 To restart the demo from scratch, run `python -m app.seed.seed --reset` again.
+
+## How students get an account
+
+1. **The Registrar imports them.** After enrollment, an admin uploads the enrollment list as a CSV file under
+   **Users → Import students** (a template is in the dialog). Each new student is emailed a link to set their
+   password (valid 72 hours), then signs in with their student number or school email.
+2. **Lost or expired link:** **Forgot password?** on the sign-in page sends a new one.
+3. **Not on the list yet** (late enrollees), **alumni and former students:** **No account yet? Request access**
+   on the sign-in page. Registrar staff check the details and ID under **Access requests** and approve, which
+   creates or links the account and emails the set-password link.
+
+Without `SMTP_HOST` (local and demo setups) these emails are written to the backend log instead of being sent.
 
 ## Tests
 
@@ -109,12 +127,13 @@ tracking emails use the same colors (`backend/app/services/email_templates.py`).
   students who lost their university mailbox. They give their student number, name, birth date, program, an
   email address and a photo of an ID (school ID or registration form for current students). New students are
   first reminded to check their TUA email for a setup link or use Forgot password. Staff review requests under
-  **Access requests**: one box per request with its submission date, oldest first, marked urgent after two
-  working days without an answer; opening a box shows the full review, with the student record comparison, and
-  the approve and reject buttons. Approving links it to that record
-  (or creates one) and emails a 72-hour set-password link. An address other than the account's login becomes
-  the student's confirmed personal email, so they can sign in and reset their password with it. The old
-  `/alumni-access` address redirects to the new one.
+  **Access requests**: one box per request with its submission date and time, oldest first, marked **Urgent**
+  after two working days without an answer (weekends and closed days don't count). Opening a box shows the full
+  review (details, uploaded ID, comparison with the student record) with the approve and reject buttons, so
+  nothing is approved unopened. Approving links the request to that record (or creates one) and emails a
+  72-hour set-password link. An address other than the account's login becomes the student's confirmed
+  personal email, so they can sign in and reset their password with it. The old `/alumni-access` address
+  redirects to the new one.
 - **Approval emails** state the amount due and the payment instructions.
 - **Reminders:** checked every hour (and on demand from admin Settings). A request waiting on the student for
   more than 2 days (correction, payment with no receipt uploaded, or pick-up) gets an "Action needed" reminder,
@@ -153,9 +172,16 @@ tracking emails use the same colors (`backend/app/services/email_templates.py`).
 - **QR verification:** each slip and e-document has a random 16-character code (`issued_documents`). Anyone can
   check it at `/verify/<code>` without logging in (rate-limited). The page shows only what is printed on the
   document, with the student number masked.
-- **Dashboard:** compact stat tiles and a submissions chart that switches between daily, weekly, monthly and
-  yearly counts (Manila time, weeks start Monday; the choice is remembered). Empty periods show as zero, and
-  a chart that fails to load shows a retry message.
+- **Dashboard:** compact stat tiles (including **Access requests** with its urgent count) and a submissions
+  chart that switches between daily, weekly, monthly and yearly counts (Manila time, weeks start Monday; the
+  choice is remembered). Empty periods show as zero, and a chart that fails to load shows a retry message. A red
+  banner appears only when an access request has waited over two working days.
+- **Progress at a glance:** while a request is open, the current step of its progress tracker pulses every
+  3 seconds in its state color (yellow: the student's turn, light green: the Registrar's), and the Processing
+  badge's icon turns. Both stop when the device asks for reduced motion.
+- **Phones and wide screens:** every student, staff and admin page fits a phone (no sideways scrolling; wide
+  tables scroll inside their own box) and stretches to use a wide monitor. The back office menu opens from ☰
+  on phones. The light/dark button is in the top bar on every screen size, and the choice is remembered.
 - **Admin back office** (admins only, under `/registrar/admin`):
   - **Document types:** add, edit or hide types, with their fees, extra questions and required files. Submitted
     requests keep the terms in their snapshot; drafts follow the catalog.
@@ -189,3 +215,6 @@ tracking emails use the same colors (`backend/app/services/email_templates.py`).
 - [x] **Phase 3:** payments and proof upload, pick-up slips (PDF), watermarked e-documents, QR verification
 - [x] **Phase 4:** admin settings (document types, fees, holidays, users, announcements), reports and
       exports, audit log viewer, accessibility and performance polish
+- [x] **Phase 5:** student CSV import, request access for new students and alumni (reviewable boxes, oldest
+      first, urgent marker), daily pick-up limit, processing-times chart, simpler status colors with a live
+      progress pulse, back office on phones
