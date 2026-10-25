@@ -110,7 +110,7 @@ function SlotPicker({ reference, current, onDone, onCancel }) {
       <p className="text-sm text-muted">
         {current ? 'Choose a new time.' : 'Choose when you’ll come, so you won’t have to wait long at the window.'}
       </p>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className="mb-2 text-sm font-medium text-fg">Day</legend>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {data.days.map((d) => {
@@ -143,7 +143,7 @@ function SlotPicker({ reference, current, onDone, onCancel }) {
           Please choose another day.
         </Alert>
       )}
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className="mb-2 text-sm font-medium text-fg">Time</legend>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {selectedDay.slots.map((s) => {

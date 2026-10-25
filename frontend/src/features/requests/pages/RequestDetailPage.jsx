@@ -77,7 +77,7 @@ export function RequestDetailPage() {
         </Card>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
           <PickupCard request={r} />
           <EDocumentCard request={r} />
@@ -406,7 +406,7 @@ function DetailSkeleton() {
         <Skeleton className="h-7 w-56" />
       </div>
       <Skeleton className="h-24 rounded-2xl" />
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Skeleton className="h-80 rounded-2xl" />
         <Skeleton className="h-48 rounded-2xl" />
       </div>

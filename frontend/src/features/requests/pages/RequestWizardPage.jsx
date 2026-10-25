@@ -147,7 +147,7 @@ function RequestWizard({ docType, initialRequest }) {
         </Alert>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card>
           <div className="border-b border-border p-5 sm:px-6">
             <WizardProgress steps={steps} current={step} maxReached={ref ? maxReached : 0} onJump={go} />
@@ -227,7 +227,7 @@ function WizardSkeleton() {
     <div className="space-y-6">
       <Skeleton className="h-4 w-32" />
       <Skeleton className="h-9 w-2/3" />
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Skeleton className="h-96 rounded-2xl" />
         <Skeleton className="h-56 rounded-2xl" />
       </div>
