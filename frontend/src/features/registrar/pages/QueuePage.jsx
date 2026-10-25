@@ -164,7 +164,7 @@ export function QueuePage() {
       ) : (
         <Card className="overflow-hidden">
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto md:block">
+          <div className="relative hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">
                 Requests, {data?.total ?? 0} results. Column headers with buttons can be sorted.

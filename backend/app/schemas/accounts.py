@@ -73,6 +73,10 @@ class AccountRequestOut(BaseModel):
     reviewed_by_name: str | None
     reviewed_at: dt.datetime | None
     created_at: dt.datetime
+    # Working days since it was sent (Manila; weekends and closed days don't count). Urgent once a pending
+    # request has waited past the "usually within two working days" the form promises.
+    waiting_days: int = 0
+    urgent: bool = False
     record: RecordMatch | None
     email_in_use: bool
     setup_link: str | None = None  # development only

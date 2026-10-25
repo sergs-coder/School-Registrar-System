@@ -24,6 +24,16 @@ def add_business_days(start: date, days: int, closed: set[date]) -> date:
     return current
 
 
+def business_days_between(start: date, end: date, closed: set[date]) -> int:
+    """Working days after `start` up to and including `end` (0 when `end` is on or before `start`)."""
+    days, current = 0, start
+    while current < end:
+        current += timedelta(days=1)
+        if current.weekday() < 5 and current not in closed:
+            days += 1
+    return days
+
+
 def closed_dates(db: Session, start: date) -> set[date]:
     return set(db.execute(select(Holiday.date).where(Holiday.date >= start)).scalars())
 

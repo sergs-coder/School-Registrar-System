@@ -4,6 +4,16 @@ TUA Student Request Portal (SRM System). Newest changes first.
 
 ## 2026-10-25 — Student import, daily pick-up limit and processing times
 
+- **Access requests as boxes:** each request is now its own box showing who it is, the **submission date and
+  time**, how many working days it has waited and a quick record check. Boxes are listed oldest first, and a
+  request still waiting after two working days is marked **Urgent** with an alarm-clock icon. Opening a box
+  shows the full review (details, uploaded ID, record comparison) with Approve and Reject at the bottom, so a
+  request can't be approved without opening it first.
+- **Dashboard:** a new **Access requests** counter (with the urgent count), and a red banner only when a
+  request has waited over two working days.
+- **Back office on phones:** every staff and admin page now fits a phone screen without sideways scrolling
+  (tables scroll inside their own box), and pages stretch to use wide monitors.
+
 - **New students can request access:** the sign-in page now says "No account yet? Request access", and the
   form has a third choice, "I'm a new or current student" (for students the Registrar hasn't set up yet).
   It first reminds them to check their TUA email for a setup link or use Forgot password, and asks for a

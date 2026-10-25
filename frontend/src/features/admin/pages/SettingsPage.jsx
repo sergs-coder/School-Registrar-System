@@ -33,7 +33,7 @@ export function SettingsPage() {
       <PageHeader title="Settings" description="Office details, fees, closed days and announcements shown in the portal." />
       <OfficeSettings />
       <PickupHours />
-      <div className="grid items-start gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
         <Holidays />
         <div className="space-y-6">
           <Announcements />
@@ -192,7 +192,7 @@ function PickupHours() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[640px] border-separate border-spacing-1 text-sm">
             <caption className="sr-only">Open pick-up hours by weekday</caption>
             <thead>

@@ -32,6 +32,7 @@ export function DashboardPage() {
   if (error) return <ErrorState error={error} onRetry={refetch} />
 
   const count = (s) => data?.counts.find((c) => c.status === s)?.count ?? 0
+  const urgent = data?.account_requests_urgent ?? 0
   const tiles = [
     { label: 'To review', value: count('submitted') + count('resubmitted'), icon: Inbox, status: 'submitted', to: '/registrar/requests?tab=new' },
     { label: 'Overdue', value: data?.overdue_total, icon: AlarmClock, status: 'rejected', to: '/registrar/requests?overdue=1' },
@@ -39,6 +40,14 @@ export function DashboardPage() {
     { label: 'Ready for pick-up', value: count('ready_for_pickup'), icon: PackageCheck, status: 'ready_for_pickup', to: '/registrar/requests?tab=release' },
     { label: 'Assigned to me', value: data?.assigned_to_me, icon: UserCheck, status: 'under_review', to: '/registrar/requests?assigned=me' },
     { label: 'Released this week', value: data?.completed_this_week, icon: CalendarCheck, status: 'completed', to: '/registrar/requests?tab=closed' },
+    {
+      label: 'Access requests',
+      value: data?.account_requests_pending,
+      icon: UserPlus,
+      status: urgent ? 'rejected' : 'submitted',
+      to: '/registrar/account-requests',
+      urgent,
+    },
   ]
 
   return (
@@ -50,23 +59,23 @@ export function DashboardPage() {
         }
       />
 
-      {data?.account_requests_pending > 0 && (
+      {urgent > 0 && (
         <Alert
-          tone="info"
-          icon={UserPlus}
-          title={`${data.account_requests_pending} access ${data.account_requests_pending === 1 ? 'request' : 'requests'} to review`}
+          tone="danger"
+          icon={AlarmClock}
+          title={`${urgent} access ${urgent === 1 ? 'request has' : 'requests have'} waited over two working days`}
           action={
             <Button asChild size="sm" variant="secondary">
-              <Link to="/registrar/account-requests">Review</Link>
+              <Link to="/registrar/account-requests">Review now</Link>
             </Button>
           }
         >
-          Check their details and ID against your records, then approve or reject.
+          The form tells people to expect an answer within two working days. Oldest requests are listed first.
         </Alert>
       )}
 
-      <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        {tiles.map(({ label, value, icon: Icon, status, to }) => (
+      <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7">
+        {tiles.map(({ label, value, icon: Icon, status, to, urgent: late }) => (
           <Link key={label} to={to} className="group rounded-xl focus-visible:outline-offset-4">
             <Card className="flex h-full items-center gap-3 rounded-xl px-3.5 py-3 transition-shadow group-hover:shadow-pop">
               <span data-status={status} className="status-chip flex size-9 shrink-0 items-center justify-center rounded-lg">
@@ -79,13 +88,18 @@ export function DashboardPage() {
                   <p className="text-xl font-semibold leading-6 tabular-nums text-fg">{value}</p>
                 )}
                 <p className="text-xs leading-4 text-muted">{label}</p>
+                {late > 0 && (
+                  <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold leading-4 text-danger">
+                    <AlarmClock className="size-3.5" aria-hidden="true" /> {late} urgent
+                  </p>
+                )}
               </div>
             </Card>
           </Link>
         ))}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <Card>
           <CardHeader>
             <CardTitle>Open requests by status</CardTitle>
@@ -96,7 +110,7 @@ export function DashboardPage() {
         <SubmissionsCard />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <MiniQueue
           title="Overdue"
           description="Past their estimated release date."

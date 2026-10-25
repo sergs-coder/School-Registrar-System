@@ -109,7 +109,9 @@ tracking emails use the same colors (`backend/app/services/email_templates.py`).
   students who lost their university mailbox. They give their student number, name, birth date, program, an
   email address and a photo of an ID (school ID or registration form for current students). New students are
   first reminded to check their TUA email for a setup link or use Forgot password. Staff review requests under
-  **Access requests**, which compares each with the student record on file. Approving links it to that record
+  **Access requests**: one box per request with its submission date, oldest first, marked urgent after two
+  working days without an answer; opening a box shows the full review, with the student record comparison, and
+  the approve and reject buttons. Approving links it to that record
   (or creates one) and emails a 72-hour set-password link. An address other than the account's login becomes
   the student's confirmed personal email, so they can sign in and reset their password with it. The old
   `/alumni-access` address redirects to the new one.

@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request as HttpR
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.api.v1.account_requests import waiting
 from app.api.v1.requests import _detail, _load
 from app.core.deps import require_staff
 from app.core.errors import AppError, NotFound
@@ -47,7 +48,7 @@ from app.schemas.staff import (
     TransitionOption,
 )
 from app.services.audit import audit
-from app.services.business_days import MANILA, manila_date
+from app.services.business_days import MANILA, closed_dates, manila_date
 from app.services.documents import EDOC_UPLOAD_STATUSES
 from app.services.notifications import dispatch_outbox
 from app.services.payments import pending_payment, reject_payment
@@ -182,9 +183,12 @@ def dashboard(user: User = Depends(require_staff), db: Session = Depends(get_db)
         )
     )
     payments_to_verify = db.scalar(select(func.count()).select_from(Request).where(PAYMENT_TO_VERIFY))
-    account_requests_pending = db.scalar(
-        select(func.count()).select_from(AccountRequest).where(AccountRequest.status == AccountRequestStatus.pending)
-    )
+    pending_access = db.execute(
+        select(AccountRequest).where(AccountRequest.status == AccountRequestStatus.pending)
+    ).scalars().all()
+    account_requests_pending = len(pending_access)
+    closed = closed_dates(db, min((manila_date(r.created_at) for r in pending_access), default=today))
+    account_requests_urgent = sum(waiting(r, today, closed)[1] for r in pending_access)
     pickups_booked_today = db.scalar(
         select(func.count()).select_from(PickupAppointment).where(PickupAppointment.date == today)
     )
@@ -192,6 +196,7 @@ def dashboard(user: User = Depends(require_staff), db: Session = Depends(get_db)
         counts=counts,
         payments_to_verify=payments_to_verify,
         account_requests_pending=account_requests_pending,
+        account_requests_urgent=account_requests_urgent,
         pickups_booked_today=pickups_booked_today,
         active_total=sum(by_status.get(s, 0) for s in OPEN),
         overdue_total=overdue_total,

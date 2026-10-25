@@ -94,7 +94,7 @@ export function AuditLogPage() {
         <ErrorState error={error} onRetry={refetch} />
       ) : (
         <Card className={cn('overflow-hidden transition-opacity', isFetching && !isLoading && 'opacity-70')}>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <caption className="sr-only">Audit log entries, newest first</caption>
               <thead className="border-b border-border bg-surface-muted/60 text-left text-xs font-semibold uppercase tracking-wide text-muted">

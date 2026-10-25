@@ -1,9 +1,10 @@
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
 from app.api.v1 import account_requests, auth
 from app.core import deps
+from app.core.security import utcnow
 from app.models import AccountRequest, Role, Standing, User
 from app.seed.seed import sample_pdf
 from tests.conftest import PASSWORD, login, make_user
@@ -173,3 +174,24 @@ def test_login_with_unverified_personal_email_fails(client, db):
     db.commit()
     r = client.post(f"{API}/auth/login", json={"identifier": "unverified@gmail.com", "password": PASSWORD})
     assert r.status_code == 401
+
+
+def test_waiting_time_and_urgent_flag(client, db, mail):
+    """Pending requests list oldest first; past two working days they're urgent (and counted on the dashboard)."""
+    assert submit(client).status_code == 201
+    assert submit(client, student_no="2015-00999", email="old@gmail.com").status_code == 201
+    old = db.query(AccountRequest).filter_by(student_no="2015-00999").one()
+    old.created_at = utcnow() - timedelta(days=10)  # at least 6 working days whatever today is
+    db.commit()
+
+    _, h = staff_headers(client, db)
+    rows = client.get(f"{API}/staff/account-requests", headers=h).json()
+    assert [r["student_no"] for r in rows] == ["2015-00999", "2015-00123"]
+    assert rows[0]["urgent"] and rows[0]["waiting_days"] >= 6
+    assert not rows[1]["urgent"] and rows[1]["waiting_days"] == 0
+    assert client.get(f"{API}/staff/dashboard", headers=h).json()["account_requests_urgent"] == 1
+
+    # Reviewed requests are never urgent.
+    assert client.post(f"{API}/staff/account-requests/{rows[0]['id']}/approve", headers=h).status_code == 200
+    done = client.get(f"{API}/staff/account-requests", headers=h, params={"status": "approved"}).json()
+    assert not done[0]["urgent"]

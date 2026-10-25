@@ -122,7 +122,7 @@ export function ReportsPage() {
             <CardContent>{isLoading ? <Skeleton className="h-72" /> : <TrendChart days={data.daily} />}</CardContent>
           </Card>
 
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <Card>
               <CardHeader>
                 <CardTitle>By document</CardTitle>
@@ -246,7 +246,7 @@ function DocumentTable({ rows }) {
   if (rows.length === 0) return <p className="rounded-xl bg-surface-muted px-4 py-6 text-center text-sm text-muted">No requests in this range.</p>
   const max = Math.max(1, ...rows.map((r) => r.submitted))
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[520px] text-sm">
         <thead className="text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="border-b border-border">

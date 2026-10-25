@@ -50,7 +50,7 @@ export function DocumentTypesPage() {
         <ErrorState error={error} onRetry={refetch} />
       ) : (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <caption className="sr-only">Document types</caption>
               <thead className="border-b border-border bg-surface-muted/60 text-left text-xs font-semibold uppercase tracking-wide text-muted">

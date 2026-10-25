@@ -5,7 +5,7 @@ Approving links the request to the student record with the same student number (
 is none), and emails a one-time set-password link to the address on the request. That address becomes the
 student's verified personal email, so they can sign in and reset their password with it from then on.
 """
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, Request as HttpRequest, Response, UploadFile
 from pydantic import ValidationError
@@ -22,11 +22,13 @@ from app.models import AccountRequest, AccountRequestStatus, PasswordResetToken,
 from app.schemas.accounts import AccountRequestIn, AccountRequestOut, RecordMatch, RejectIn
 from app.schemas.common import Message
 from app.services.audit import audit
+from app.services.business_days import business_days_between, closed_dates, manila_date
 from app.services.email import send_email
 from app.services.uploads import safe_filename, validate_upload
 
 router = APIRouter(tags=["access requests"])
 SETUP_LINK_HOURS = 72
+URGENT_AFTER_DAYS = 2  # the form tells people "usually within two working days"
 SIGN_OFF = "\n\n— Office of the University Registrar, Trinity University of Asia"
 
 
@@ -93,8 +95,19 @@ def _email_owner(db: Session, email: str) -> User | None:
     ).scalars().first()
 
 
-def _out(db: Session, req: AccountRequest, setup_link: str | None = None) -> AccountRequestOut:
+def waiting(req: AccountRequest, today: date, closed: set[date]) -> tuple[int, bool]:
+    """Working days the request has waited, and whether it's urgent: still pending past the two working days
+    the form promises."""
+    days = business_days_between(manila_date(req.created_at), today, closed)
+    return days, req.status == AccountRequestStatus.pending and days >= URGENT_AFTER_DAYS
+
+
+def _out(db: Session, req: AccountRequest, setup_link: str | None = None,
+         closed: set[date] | None = None) -> AccountRequestOut:
     st = _record(db, req)
+    if closed is None:
+        closed = closed_dates(db, manila_date(req.created_at))
+    waiting_days, urgent = waiting(req, manila_date(utcnow()), closed)
     record = None
     if st:
         same = lambda a, b: (a or "").strip().lower() == (b or "").strip().lower()  # noqa: E731
@@ -106,7 +119,9 @@ def _out(db: Session, req: AccountRequest, setup_link: str | None = None) -> Acc
     owner = _email_owner(db, req.email)
     return AccountRequestOut(
         **{k: getattr(req, k) for k in AccountRequestOut.model_fields
-           if k not in ("record", "email_in_use", "reviewed_by_name", "setup_link")},
+           if k not in ("record", "email_in_use", "reviewed_by_name", "setup_link", "waiting_days", "urgent")},
+        waiting_days=waiting_days,
+        urgent=urgent,
         reviewed_by_name=req.reviewed_by.display_name if req.reviewed_by else None,
         record=record,
         email_in_use=owner is not None and (st is None or owner.id != st.user_id),
@@ -128,9 +143,11 @@ def list_account_requests(
     status: AccountRequestStatus = Query(default=AccountRequestStatus.pending),
     _: User = Depends(require_staff), db: Session = Depends(get_db),
 ):
+    # Pending: oldest first, so the longest wait is reviewed first.
     order = AccountRequest.created_at.asc() if status == AccountRequestStatus.pending else AccountRequest.reviewed_at.desc()
-    rows = db.execute(select(AccountRequest).where(AccountRequest.status == status).order_by(order).limit(200)).scalars()
-    return [_out(db, r) for r in rows]
+    rows = db.execute(select(AccountRequest).where(AccountRequest.status == status).order_by(order).limit(200)).scalars().all()
+    closed = closed_dates(db, min((manila_date(r.created_at) for r in rows), default=manila_date(utcnow())))
+    return [_out(db, r, closed=closed) for r in rows]
 
 
 @router.get("/staff/account-requests/{request_id}/id-file")
