@@ -127,7 +127,7 @@
     border-radius: 9999px;
     background: var(--s);
     pointer-events: none;
-    animation: status-pulse 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+    animation: status-pulse 3s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
   @media (prefers-reduced-motion: reduce) {
     .status-pulse {

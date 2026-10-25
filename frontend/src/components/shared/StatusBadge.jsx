@@ -18,7 +18,7 @@ export function StatusBadge({ status, size = 'md', className }) {
         className={cn(
           size === 'sm' ? 'size-3.5' : 'size-4',
           // The processing icon is a loader; let it turn slowly so it reads as work in progress.
-          status === 'processing' && 'motion-safe:animate-[spin_2.5s_linear_infinite]',
+          status === 'processing' && 'motion-safe:animate-[spin_3s_linear_infinite]',
         )}
         aria-hidden="true"
       />
