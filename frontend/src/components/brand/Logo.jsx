@@ -30,15 +30,31 @@ export function LogoMark({ className }) {
   )
 }
 
-export function Logo({ className, subtitle = 'Student Request Portal', inverted = false }) {
+/** `compact`: on phones, the name wraps onto two lines and the subtitle is dropped, so a crowded top bar never
+ * cuts the university's name short. From `sm` up it looks the same as the default. */
+export function Logo({ className, subtitle = 'Student Request Portal', inverted = false, compact = false }) {
   return (
-    <span className={cn('flex items-center gap-3', className)}>
+    <span className={cn('flex items-center', compact ? 'gap-2 sm:gap-3' : 'gap-3', className)}>
       <LogoMark />
       <span className="flex min-w-0 flex-col leading-tight">
-        <span className={cn('truncate text-[15px] font-bold tracking-tight', inverted ? 'text-white' : 'text-fg')}>
+        <span
+          className={cn(
+            'font-bold tracking-tight',
+            compact ? 'text-sm sm:truncate sm:text-[15px]' : 'truncate text-[15px]',
+            inverted ? 'text-white' : 'text-fg',
+          )}
+        >
           Trinity University of Asia
         </span>
-        <span className={cn('truncate text-xs font-medium', inverted ? 'text-accent-200' : 'text-muted')}>{subtitle}</span>
+        <span
+          className={cn(
+            'truncate text-xs font-medium',
+            compact && 'hidden sm:block',
+            inverted ? 'text-accent-200' : 'text-muted',
+          )}
+        >
+          {subtitle}
+        </span>
       </span>
     </span>
   )

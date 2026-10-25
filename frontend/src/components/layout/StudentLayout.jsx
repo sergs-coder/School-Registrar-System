@@ -41,9 +41,9 @@ export function StudentLayout() {
       <SkipLink />
       <ScrollToTop />
       <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="mr-2 min-w-0 rounded-lg">
-            <Logo />
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:gap-4 sm:px-6">
+          <Link to="/" className="min-w-0 rounded-lg sm:mr-2">
+            <Logo compact />
             <span className="sr-only">, home</span>
           </Link>
           <nav aria-label="Main" className="hidden flex-1 items-center gap-1 md:flex">
@@ -70,7 +70,7 @@ export function StudentLayout() {
               </Link>
             </Button>
             <NotificationBell />
-            <ThemeToggle className="hidden sm:inline-flex" />
+            <ThemeToggle />
             <UserMenu />
           </div>
         </div>
